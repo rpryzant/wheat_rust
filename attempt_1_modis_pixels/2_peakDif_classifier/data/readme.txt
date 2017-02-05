@@ -1,0 +1,1 @@
+each file here has the label for a single observation, and the closest MODIS pixel to that observation in space AND time

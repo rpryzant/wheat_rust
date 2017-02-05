@@ -1,0 +1,5 @@
+
+This stuff was a little experiment where I tried to directly classify
+presence of disease using the raw pixels (i.e. the closest MODIS pixel
+to each observation in space & time). It didn't work at all so nothing 
+to see here ho hum

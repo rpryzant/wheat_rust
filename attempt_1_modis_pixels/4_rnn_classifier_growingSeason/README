@@ -1,0 +1,12 @@
+generate_dataset.py  -  this file is responsible for taking the location & disease data
+		        and matching it with the MODIS pixel dataset
+
+sequences.py         -  example output. the disease threshold for this one is 2 for stem & leaf 
+
+model.py             -  logic for the RNN
+
+train.py             -  trains an RNN model on sequence data from generate_dataset.py
+
+figs/                -  learning curves for different runs
+
+results/             -  data and r script for generating said figs

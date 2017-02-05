@@ -1,0 +1,17 @@
+
+
+compute_deltas.py         -  looks at the MODIS pixel data, joins the timeseries for each location with
+		             that location's disease label, and then computes and saves the following:
+	                               (max green pixel)  -   (one month later pixel)
+
+classify_deltas[.py | .R] -  python and R script that do the same thing: run a linear classifier (svm) 
+		             over all 7 bands of the delta pixels (each band is a feature)
+
+tsne.R                    -  map delta pixels down to two dimensions with t-sne, then plot
+
+results/                  -  experiment results and figures
+
+data/                     -  raw pixel delta examples fed into the svm for varying disease thresholds
+			     (higher threshold means that it's harder to get a "1" for disease)
+
+
