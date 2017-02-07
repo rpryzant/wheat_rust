@@ -39,6 +39,7 @@ class RegionMap:
         self.root = parser.fromstring(open(kml_file).read())
         self.regions = {}
         for region in self.root.Document.Placemark:
+            # TODO WHAT DO IF MULTIPLE KEYS
             self.regions[self.__key(region.name)] = Region(region)
 
     def locate(self, lat, lon):

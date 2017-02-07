@@ -135,11 +135,8 @@ if __name__ == "__main__":
     sf = SurveyFeaturizer(regions, surveys, Thresholders.stemStripe2)
 
     # TODO - MORE VERIFICATION...THIS DOESN'T LOOK CORRECT?
-    print sf.score_region('MEKET', 2016)
-
-
-
-
+    print sf.score_region('TOLE', 2015)     # checks out (1 pos ob)
+    print '===='
 
 
 
