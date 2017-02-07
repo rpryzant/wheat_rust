@@ -91,6 +91,29 @@ class SurveyFeaturizer:
                 self.bucketed_observations[obs.season][obs.region].append(obs)
 
 
+    def surveyed_regions(self, season):
+        """ returns all surveyed regions for a season """
+        return self.bucketed_observations[season].keys()
+
+    def score_region(self, region, season):
+        """ get score of region for season. higher score means more 
+            likely to be binned as diseased. score is weighted average
+            of label ratios
+        """
+        observations = self.bucketed_observations[season][region]
+        nPos = sum((1 if o.label == 1 else 0) * self.__weight(o.day_of_season) for o in observations)
+        nNeg = sum((0 if o.label == 1 else 1) * self.__weight(o.day_of_season) for o in observations)
+        print nPos, nNeg
+        return nPos * 1.0 / (nNeg or 0.5)
+
+    def __weight(self, d):
+        """ weights observations according to gaussian that's skewed towards the end of the season
+            intuitively, observations closer to the end of the season should matter more
+
+            TODO: the real thing, what i'm doing now is dumb and hacky
+        """
+        return 1.0
+
 
     def __healthy(self, row):
         """ tests whether a row should be discarded """
@@ -111,8 +134,8 @@ if __name__ == "__main__":
 
     sf = SurveyFeaturizer(regions, surveys, Thresholders.stemStripe2)
 
-
-
+    # TODO - MORE VERIFICATION...THIS DOESN'T LOOK CORRECT?
+    print sf.score_region('MEKET', 2016)
 
 
 
