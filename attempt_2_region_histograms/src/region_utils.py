@@ -4,6 +4,10 @@ contains files for msc operations over geographical regions
 === USAGE
 python region_utils.py ../data/regions.kml ../data/raw_survey.csv
 
+=== TODO
+ - ratio weighting
+ - obs freq thresholding/weighting
+ - final per-season labels
 """
 import re
 import sys
@@ -127,7 +131,7 @@ class SurveyFeaturizer:
         """ weights observations according to gaussian that's skewed towards the end of the season
             intuitively, observations closer to the end of the season should matter more
 
-            TODO: the real thing, what i'm doing now is dumb and hacky
+            TODO: the real thing, i'm not doing anything right now
         """
         return 1.0
 
@@ -152,6 +156,7 @@ if __name__ == "__main__":
 
     # test with manually verified locations
     assert sf.count_obs('TOLE', 2015) == (1.0, 0.0)    # there was 1 pos ob in this season
+    quit()
     assert sf.count_obs('TOLE', 2011) == (0.0, 1.0)    # 1 neg ob
 
     assert sf.count_obs('AMBO_ZURIA', 2011) == (1.0, 1.0) # etc
