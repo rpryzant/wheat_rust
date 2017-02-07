@@ -41,7 +41,7 @@ class RegionMap:
         for region in self.root.Document.Placemark:
             self.regions[self.__key(region.name)] = Region(region)
 
-    def lookup(self, lat, lon):
+    def locate(self, lat, lon):
         """ look up region for given coordinate
         """
         for key, region in self.regions.iteritems():
@@ -56,13 +56,14 @@ class RegionMap:
         return str(kml_name).upper().replace(' ', '_')
 
 
+
 if __name__ == "__main__":
     rm = RegionMap(sys.argv[1])
+    print '=== TESTING...'
     # should give city of Bahir Dar
-    print rm.lookup(11.594345, 37.391027)
-
+    assert rm.locate(11.594345, 37.391027) == 'BAHIR_DAR'
     # should give nothing - isn't in ethiopia
-    print rm.lookup(15, 15)
-
+    assert rm.locate(15, 15) == None
+    print '\t passed!'
 
 
