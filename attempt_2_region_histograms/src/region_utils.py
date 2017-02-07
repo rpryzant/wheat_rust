@@ -36,7 +36,7 @@ class Thresholders:
 
     @staticmethod
     def stemStripe2(sevs):
-        return 1 if  (sevs[0] > 2 or sevs[2] > 2) else 0
+        return 1 if  (sevs[0] >= 2 or sevs[2] >= 2) else 0
 
 
 class Observation:
@@ -73,6 +73,19 @@ class Observation:
         return (ts - season_start).days
 
 
+    def __str__(self):
+        s =  'OBSERVATION:\n'
+        s += '\t lat: %s\n'
+        s += '\t lon: %s\n'
+        s += '\t severities: %s\n'
+        s += '\t label: %s\n'
+        s = s % (self.lat, self.lon, str(self.severities), self.label)
+        if self.region:
+            s += '\t region: %s\n' % self.region
+        return s
+
+
+
 class SurveyFeaturizer:
     def __init__(self, regions_file, survey_file, thresholder=Thresholders.maxSev):
         self.thresholder = thresholder
@@ -95,15 +108,19 @@ class SurveyFeaturizer:
         """ returns all surveyed regions for a season """
         return self.bucketed_observations[season].keys()
 
+    def count_obs(self, region, season):
+        """ counts num observations of each type for a region/season """
+        observations = self.bucketed_observations[season][region]
+        nPos = sum((1 if o.label == 1 else 0) * self.__weight(o.day_of_season) for o in observations)
+        nNeg = sum((0 if o.label == 1 else 1) * self.__weight(o.day_of_season) for o in observations)
+        return nPos, nNeg
+
     def score_region(self, region, season):
         """ get score of region for season. higher score means more 
             likely to be binned as diseased. score is weighted average
             of label ratios
         """
-        observations = self.bucketed_observations[season][region]
-        nPos = sum((1 if o.label == 1 else 0) * self.__weight(o.day_of_season) for o in observations)
-        nNeg = sum((0 if o.label == 1 else 1) * self.__weight(o.day_of_season) for o in observations)
-        print nPos, nNeg
+        nPos, nNeg = self.count_obs(region, season)
         return nPos * 1.0 / (nNeg or 0.5)
 
     def __weight(self, d):
@@ -113,7 +130,6 @@ class SurveyFeaturizer:
             TODO: the real thing, what i'm doing now is dumb and hacky
         """
         return 1.0
-
 
     def __healthy(self, row):
         """ tests whether a row should be discarded """
@@ -134,9 +150,15 @@ if __name__ == "__main__":
 
     sf = SurveyFeaturizer(regions, surveys, Thresholders.stemStripe2)
 
-    # TODO - MORE VERIFICATION...THIS DOESN'T LOOK CORRECT?
-    print sf.score_region('TOLE', 2015)     # checks out (1 pos ob)
-    print '===='
+    # test with manually verified locations
+    assert sf.count_obs('TOLE', 2015) == (1.0, 0.0)    # there was 1 pos ob in this season
+    assert sf.count_obs('TOLE', 2011) == (0.0, 1.0)    # 1 neg ob
+
+    assert sf.count_obs('AMBO_ZURIA', 2011) == (1.0, 1.0) # etc
+    assert sf.count_obs('AMBO_ZURIA', 2013) == (0.0, 4.0)
+
+    assert sf.count_obs("DUGDA", 2013) == (0.0, 6.0)
+    assert sf.count_obs("DUGDA", 2007) == (0.0, 1.0)
 
 
 
