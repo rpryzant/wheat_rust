@@ -3,7 +3,7 @@ Classes, methods, and constants for wrangling kml files go here
 
 
 === USAGE
-python kml_utils.py ../data/regions.kml
+python kml_utils.py ../../data/regions.kml
 
 """
 from pykml import parser

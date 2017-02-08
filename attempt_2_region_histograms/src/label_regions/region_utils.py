@@ -2,7 +2,7 @@
 contains files for msc operations over geographical regions
 
 === USAGE
-python region_utils.py ../data/regions.kml ../data/raw_survey.csv
+python region_utils.py ../../data/regions.kml ../../data/raw_survey.csv
 
 === TODO
  - ratio weighting
@@ -91,7 +91,7 @@ class Observation:
 
 
 class SurveyFeaturizer:
-    def __init__(self, regions_file, survey_file, thresholder=Thresholders.maxSev):
+    def __init__(self, regions_file, survey_file, thresholder=Thresholders.stemStripe2):
         self.thresholder = thresholder
         self.observations = []
         self.region_map = RegionMap(regions_file)
