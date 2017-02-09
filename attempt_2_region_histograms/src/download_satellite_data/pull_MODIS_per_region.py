@@ -33,8 +33,8 @@ start = time.time()
 ee.Initialize()
 regions = ee.FeatureCollection("ft:133FLgnCJZsRswd2sb7Sp-od0Z90nB6P1qHuUDe57")
 
-cropland = ee.Image("/Users/rapigan/Downloads/cropland_hybrid_14052014v8/out.tif")
-#cropland = ee.Image("users/rpryzant/IIASA_IFPRI")
+#cropland = ee.Image("/Users/rapigan/Downloads/cropland_hybrid_14052014v8/out.tif")
+cropland = ee.Image("users/rpryzant/IIASA_IFPRI")
 def mask_cropland(image):
     return image.updateMask(cropland.gt(0))
 print 'done. took {:.2f} seconds'.format(time.time() - start)
@@ -61,15 +61,16 @@ def export_image(img, folder, name, scale):
     task = ee.batch.Export.image(img, name, {
             'driveFolder': folder,
             'driveFileNamePrefix': name,
-            'scale': scale
+            'scale': scale,
+            'maxPixels': 13205041984               # todo - better value
           })
     task.start()
     print '== EXPORTING %s/%s' % (folder, name)
-    while task.status()['state'] == 'RUNNING':
+    while task.status()['state'] in ['RUNNING']:
         print '\t running...'
         time.sleep(10)
     print '\t done', task.status()
-
+    
 
 seasons = {y: ('%s-06-01' % y, '%s-03-01' % (y+1)) for y in range(2007, 2017) if y != 2009}
 scale = 500     # modis is 500m resolution. downsample coarser images to this
