@@ -26,6 +26,18 @@ start = time.time()
 sf = SurveyFeaturizer(sys.argv[1], sys.argv[2])
 print 'done. took {:.2f} seconds'.format(time.time() - start)
 
+seasons = {y: ('%s-06-01' % y, '%s-03-01' % (y+1)) for y in range(2007, 2017) if y != 2009}
+for season, (start, end) in seasons.iteritems():
+    print 
+    print 
+    regions = sf.surveyed_regions(season)
+    print 'var data_%s = %s;' % (str(season), str([[r, start, end, season] for r in regions]))
+
+
+
+
+quit()
+
 print '...'
 
 print 'initializing earth engine connection...'
@@ -59,8 +71,8 @@ def appender(bands):
 
 def export_image(img, folder, name, scale):
     task = ee.batch.Export.image(img, name, {
-            'driveFolder': folder,
-            'driveFileNamePrefix': name,
+            'folder': folder,
+            'fileNamePrefix': name,
             'scale': scale,
             'maxPixels': 13205041984               # todo - better value
           })
@@ -74,6 +86,17 @@ def export_image(img, folder, name, scale):
 
 seasons = {y: ('%s-06-01' % y, '%s-03-01' % (y+1)) for y in range(2007, 2017) if y != 2009}
 scale = 500     # modis is 500m resolution. downsample coarser images to this
+
+
+# TODO DOESNT WORK???
+MODIS_collection = ee.ImageCollection('MODIS/MOD09A1')
+modis_images = MODIS_collection.filterDate('2015-06-01', '2016-03-01').map(mask_cropland)
+modis_meta_image = modis_images.iterate(appender([0,1,2,3,4,5,6]))    # sr bands 1-7
+region = regions.filterMetadata('name', 'equals', 'AMBO_ZURIA')
+img = ee.Image(modis_meta_image)
+export_image(img.clip(region), 'test_folder_2', 'test_prefix', 500)
+
+quit() 
 
 
 ############  1: surface reflectance
