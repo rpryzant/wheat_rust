@@ -43,7 +43,7 @@ files = [x[:-4] for x in os.listdir(gdrive)]
 
 missing_images = set(images[season].keys()) - set(files)
 
-print missing_images
+print [images[season][x] for x in missing_images]
 
 
 
