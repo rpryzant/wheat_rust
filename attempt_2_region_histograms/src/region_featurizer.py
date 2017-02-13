@@ -2,7 +2,7 @@
 contains files for msc operations over geographical regions
 
 === USAGE
-python region_utils.py ../../data/regions.kml ../../data/raw_survey.csv
+python region_featurizer.py ../../data/regions.kml ../../data/raw_survey.csv
 
 === TODO
  - ratio weighting
@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
     # test with manually verified locations
     assert sf.count_obs('TOLE', 2015) == (1.0, 0.0)    # there was 1 pos ob in this season
-    quit()
+
     assert sf.count_obs('TOLE', 2011) == (0.0, 1.0)    # 1 neg ob
 
     assert sf.count_obs('AMBO_ZURIA', 2011) == (1.0, 1.0) # etc
