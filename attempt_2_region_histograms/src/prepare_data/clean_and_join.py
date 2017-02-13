@@ -1,8 +1,32 @@
 """
+=== DESCRIPTION
+This file takes a bunch of stacked up timeseries images from various satellite sources
+  and combines each stack, then writes those data as numpy arrays
+
+I used this file to combine ethiopia region-level season-long timeseries data for 
+   -MODIS MOD09A1 (surface reflectance, bands 0-6)
+   -MODIS MYD11A2 (temperature, bands 0 & 4)
+   -MODIS MYD17A2H (gross photosynthesis, band 0)
+
+=== PRECONDITIONS
+sys.argv[1] must be a directory root "root" structured as follows:
+
+root/
+  sr/
+    IMAGE1.tif
+    IMAGE2.tif
+    ...
+  temp/
+    IMAGE1.tif
+    IMAGE2.tif
+    ...
+  gpp/
+    IMAGE1.tif
+    IMAGE2.tif
+    ...
 
 === USAGE
 python clean_and_join.py ~/Google\ Drive/ ~/Desktop/test/
-
 """
 
 import numpy as np
@@ -14,6 +38,9 @@ from joblib import Parallel, delayed
 
 
 def gen_img_paths(gdrive_root):
+    """ iterator that spits out reflectance, temperature, photosynthesis 
+        images simultaneously 
+    """
     sr_root = gdrive_root + 'sr/'
     temp_root = gdrive_root + 'temp/'
 
@@ -36,7 +63,13 @@ def gen_img_paths(gdrive_root):
 
 
 def merge_image(a, a_nb, b, b_nb):
-    assert (a.shape[2] / a_nb) == (b.shape[2] / b_nb), '%s, %s' % (a.shape, b.shape)
+    """ given np arrays of two image stacks both with shape (x, y, num bands per image),
+        interleave their component images and return the resulting merger
+    """
+    assert (a.shape[0] == b.shape[0] and a.shape[1] == b.shape[1]), \
+        "merger of unequal sized images! \n\ta: %s \n\tb: %s" % (a.shape, b.shape)
+    assert (a.shape[2] / a_nb) <= (b.shape[2] / b_nb), \
+        'a has fewer images than b! \n\t a:%s \n\t b: %s' % (a.shape, b.shape)
     # set up merged image
     m_nb = a_nb + b_nb                               
     m = np.zeros( (a.shape[0], a.shape[1], a.shape[2] + b.shape[2]) )
@@ -55,6 +88,10 @@ def merge_image(a, a_nb, b, b_nb):
 
 
 def preprocess_and_save(sr, temp, out):
+    """ convert sr and temp images to np, merge them, and write to location 
+        specified by out
+    """
+
     def metadata_from_path(path):
         return os.path.basename(path)[:-4], int(re.findall('20\d\d', path)[0])
 
