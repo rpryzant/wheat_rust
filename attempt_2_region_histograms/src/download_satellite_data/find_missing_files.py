@@ -16,7 +16,7 @@ import re
 import string
 from collections import defaultdict
 sys.path.insert(0, os.path.abspath("../.."))
-from src.label_regions.region_utils import *
+from src.label_regions.region_featurizer import *
 
 
 
