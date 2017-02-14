@@ -1,5 +1,9 @@
 """
+local: 
 python histogram_and_label.py ../../data/regions.kml ../../data/raw_survey.csv ~/Desktop/test ~/Desktop/test2
+global:
+python histogram_and_label.py ../../data/regions.kml ../../data/raw_survey.csv ../../../../datasets/ ../../../../datasets/training/
+
 """
 import os
 import numpy as np
