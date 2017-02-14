@@ -129,6 +129,15 @@ class SurveyFeaturizer:
         nPos, nNeg = self.count_obs(region, season)
         return nPos * 1.0 / (nNeg or 0.5)
 
+
+    def label(self, region, season):
+        """ label a region for a season. 1 means dieseasd, 0 means disease-free
+
+            TODO make this smarter!
+        """
+        return 1.0 if self.score_region(region, season) > 1.0 else 0
+
+
     def __weight(self, d):
         """ weights observations according to gaussian that's skewed towards the end of the season
             intuitively, observations closer to the end of the season should matter more
