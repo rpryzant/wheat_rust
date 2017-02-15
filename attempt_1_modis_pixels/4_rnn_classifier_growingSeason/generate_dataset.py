@@ -10,6 +10,7 @@
 
 === USAGE
 python generate_dataset.py ../data/threshold_2_all3.csv ~/Google\ Drive/ test.npy
+python generate_dataset.py ../../data/thresholding_disease/threshold_2_all3.csv ~/Google\ Drive/ test.npy
 
 """
 import pandas as pd

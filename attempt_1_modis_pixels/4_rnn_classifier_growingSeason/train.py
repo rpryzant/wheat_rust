@@ -11,8 +11,7 @@ import sys
 import random
 import numpy as np
 from tqdm import tqdm
-
-
+import matplotlib.pyplot as plt
 
 def iter_batches(X, Y, batch_size):
     """ chop X and Y up into batches and yield 'em
@@ -79,8 +78,14 @@ def train_val_test_splits(X, Y, N, f):
 
     return X_train, one_hot(Y_train), X_val, one_hot(Y_val), X_test, one_hot(Y_test)
 
-
-
+'''
+from datetime import date
+def time_series(s, e):
+    pix = []
+    for p in pixel:
+	if s <= p.date <=end:
+	    pix.append(p)		
+'''		
 
 
 
@@ -89,6 +94,7 @@ def train_val_test_splits(X, Y, N, f):
 # read in dataset from generate_dataset.py
 # structured as [ [label, [[day of year, pixel], ...] ], ... ]
 dataset = np.load(sys.argv[1])
+# dataset = np.load(sys.argv[1]).astype(np.float32)
 # load in model
 model_path = None
 if len(sys.argv) > 2:
@@ -128,7 +134,10 @@ X = difference(X)
 #X_train, Y_train, X_val, Y_val, X_test, Y_test = train_val_test_splits(X, Y, N, 8)
 print X[0]
 X_train, Y_train, X_val, Y_val = train_test_splits(X, Y, N, 8)
-
+#print X_train[0]
+#print Y_train[0]
+#print X_val[0]
+#print Y_val[0]
 
 model = LSTM(num_classes=NUM_CLASSES,
              max_seq_len=MAX_SEQ_LEN,
@@ -139,6 +148,8 @@ model = LSTM(num_classes=NUM_CLASSES,
 
 print 'epoch,mean_loss,train_acc,val_acc'
 
+xaxis = []
+yaxis = []
 
 for epoch in range(500):
     epoch_loss = 0
@@ -150,7 +161,12 @@ for epoch in range(500):
         accuracy(model.predict(X_train), from_one_hot(Y_train)), 
         accuracy(model.predict(X_val), from_one_hot(Y_val))
         )
+    xaxis.append(epoch)
+    yaxis.append(accuracy(model.predict(X_train), from_one_hot(Y_train)))
 
+
+plt.plot(xaxis, yaxis)
+plt.show()
 
 #  TODO  - CLEAN THIS SHIT UP
 print '=== BASELINE ACC'

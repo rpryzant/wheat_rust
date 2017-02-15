@@ -47,7 +47,9 @@ class LSTM(object):
 
 
     def __batch_loss(self, logits):
-        losses = tf.nn.softmax_cross_entropy_with_logits(logits, self.target)
+        print logits
+	print self.target
+	losses = tf.nn.softmax_cross_entropy_with_logits(logits, self.target)
         loss_per_batch = tf.reduce_sum(losses) / tf.to_float(self.length)
         mean_batch_loss = tf.reduce_mean(loss_per_batch)
         return mean_batch_loss
