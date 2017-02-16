@@ -10,6 +10,7 @@
 
 === USAGE
 python generate_dataset.py ../data/threshold_2_all3.csv ~/Google\ Drive/ test.npy
+python generate_dataset.py ../../data/thresholding_disease/threshold_2_all3.csv ~/Google\ Drive/ test.npy
 
 """
 import pandas as pd
@@ -80,6 +81,8 @@ for row in iterate_rows(labels_df):
     row_ts = ts_from_str(row.ObsDate)
     if row_ts.year == 2009:
         continue
+    if row_ts.month < 6 and row_ts.month > 1:
+	continue
     sequence = modis_data[row_ts.year][row['Location ID']]
     if not sequence:
         continue
