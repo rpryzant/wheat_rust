@@ -39,6 +39,10 @@ class Thresholders:
     @staticmethod
     def maxSev(sevs):
         return max(sevs)
+    
+    @staticmethod
+    def maxStemStripe3Leaf(sevs):
+        return max(sevs[0], sevs[2], (3 if sevs[1] == 3 else 0))
 
     @staticmethod
     def stemStripe2(sevs):
@@ -117,8 +121,10 @@ class SurveyFeaturizer:
     def count_obs(self, region, season):
         """ counts num observations of each type for a region/season """
         observations = self.bucketed_observations[season][region]
-        nPos = sum((1 if o.label == 1 else 0) * self.__weight(o) for o in observations)
-        nNeg = sum((0 if o.label == 1 else 1) * self.__weight(o) for o in observations)
+
+        nPos = sum(o.label * self.__weight(o) for o in observations if o.label > 0)
+        nNeg = sum(1 * self.__weight(o) for o in observations if o.label == 0)
+
         return nPos, nNeg
 
     def score_region(self, region, season):
@@ -126,16 +132,25 @@ class SurveyFeaturizer:
             likely to be binned as diseased. score is weighted average
             of label ratios
         """
+        observations = self.bucketed_observations[season][region]
+        return sum(o.label * self.__weight(o) for o in observations) * 1.0 / len(observations)
+
+
+    def ratio_region(self, region, season)
         nPos, nNeg = self.count_obs(region, season)
         return nPos * 1.0 / (nNeg or 0.5)
 
 
-    def label(self, region, season):
+    def label(self, region, season, ratio=False):
         """ label a region for a season. 1 means dieseasd, 0 means disease-free
 
             TODO make this smarter! plot distribution!
         """
-        return 1.0 if self.score_region(region, season) > 1.0 else 0
+        if ratio:
+            return 1.0 if self.region_ratio(region, season) > 1.0 else 0
+
+        return 1.0 if self.score_region(region, season) > 1.5 else 0
+
 
 
     def __weight(self, o):
@@ -145,7 +160,7 @@ class SurveyFeaturizer:
             d is the day of the season
         """
         d = o.day_of_season
-        return min(1, (d / 30) * 0.2)
+        return min(1, (d / 30) * 0.15)
         
 
         return 1.0
