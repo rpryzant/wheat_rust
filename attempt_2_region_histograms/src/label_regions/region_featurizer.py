@@ -136,7 +136,7 @@ class SurveyFeaturizer:
         return sum(o.label * self.__weight(o) for o in observations) * 1.0 / len(observations)
 
 
-    def ratio_region(self, region, season)
+    def region_ratio(self, region, season):
         nPos, nNeg = self.count_obs(region, season)
         return nPos * 1.0 / (nNeg or 0.5)
 
@@ -147,10 +147,12 @@ class SurveyFeaturizer:
             TODO make this smarter! plot distribution!
         """
         if ratio:
-            return 1.0 if self.region_ratio(region, season) > 1.0 else 0
+            # about .45 observations have ratios above 2.5
+            # there's a bit of a second bimodal peak at 2.5 as well
+            return 1 if self.region_ratio(region, season) > 2.5 else 0
 
-        return 1.0 if self.score_region(region, season) > 1.5 else 0
-
+        # about .25 observations have scores above 1
+        return 1 if self.score_region(region, season) > 1.0 else 0
 
 
     def __weight(self, o):
@@ -160,10 +162,8 @@ class SurveyFeaturizer:
             d is the day of the season
         """
         d = o.day_of_season
-        return min(1, (d / 30) * 0.15)
-        
+        return min(1, (d / 15) * 0.075)
 
-        return 1.0
 
     def __healthy(self, row):
         """ tests whether a row should be discarded """

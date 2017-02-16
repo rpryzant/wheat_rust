@@ -172,7 +172,7 @@ if __name__ == '__main__':
     print '========================================'
     print 'building survey features...'
     start = time.time()
-    sf = SurveyFeaturizer(regions_kml, survey, thresholder=Thresholders.maxStemStripe3Leaf)
+    sf = SurveyFeaturizer(regions_kml, survey, Thresholders.maxStemStripe3Leaf)
     print 'done. took {:.2f} seconds'.format(time.time() - start)
 
     print '======================================='
@@ -197,7 +197,7 @@ if __name__ == '__main__':
             hist = histogram_stacked_image(merged_timeseries)
             print '\t done! took {:.2f} seconds'.format(time.time() - start)
 
-            labels.append(sf.label(region, season, ratio=False))
+            labels.append(sf.label(region, season, ratio=True))
             examples.append(hist)
             ids.append('%s-%s' % (region, season))
 
@@ -209,9 +209,6 @@ if __name__ == '__main__':
             print e
             print 'SOMETHING BROKE!!!!!!!!!!!!!1'
 
-
-    np.save(out+'/data.npy', labels)
-    quit()
 
     print '====================================='
     print 'writing data to %s...' % out
