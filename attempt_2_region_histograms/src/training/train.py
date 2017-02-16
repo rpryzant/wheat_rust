@@ -18,7 +18,7 @@ if __name__ == "__main__":
     content = np.load(filename)
 
     images = content['examples']
-    # TODO - PAD??
+    # TODO - PAD IN DATA GENERATION
     images = np.array([x for x in images if len(x) == 35])
 
     labels = content['labels']
@@ -32,6 +32,7 @@ if __name__ == "__main__":
     # split into train and validate
     # TODO
 
+    # TODO - I SHOULD BE DOING ALL THIS DURING DATASET GENERATION (padding, etc)
     # calc train image mean (for each band), and then detract (broadcast)
     sum_per_band = np.zeros((n_bands, n_buckets))
     # can't use np.sum because images is ragged in the first dimension
@@ -44,7 +45,12 @@ if __name__ == "__main__":
     images_new = np.zeros((N, 32, 35, 10)) # examples, buckets, photos, bands
     for i in indices:
         images_new[i] = np.transpose(images[i], (2, 0, 1))
-    images = images_new
+    image_all = images_new
+    yield_all = labels
+    index_all = indices
+
+    index_train = indices[:(N-(N/8))]
+    index_validate = indices[(N-(N/8)):]
 
 
     model= NeuralModel(config,'net')
@@ -53,6 +59,9 @@ if __name__ == "__main__":
     # Launch the graph.
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
     sess.run(tf.initialize_all_variables())
+
+
+
 
     summary_train_loss = []
     summary_eval_loss = []
@@ -63,32 +72,6 @@ if __name__ == "__main__":
     val_loss=0
     val_prediction = 0
     val_deviation = np.zeros([config.B])
-
-
-
-
-    for i in range(config.train_step):
-        # TODO: data augmentation?
-        batch_indices = np.random.choice(indices, size=config.B)
-        batch_images = images[batch_indices]
-        batch_labels = labels[batch_indices]
-
-        _, train_loss = sess.run([model.train_op, model.loss_err], feed_dict={
-            model.x: batch_images,
-            model.y: batch_labels,
-            model.lr: config.lr,
-            model.keep_prob: config.drop_out
-            })
-
-        print train_loss
-
-
-
-
-
-    quit()
-
-
     # #########################
     # block when test
     # add saver
@@ -107,54 +90,41 @@ if __name__ == "__main__":
         print 'No history model found'
     # #########################
     
+    for i in range(config.train_step):
+        
+        batch_index = np.random.choice(index_train, size=config.B)
+        x_batch = image_all[batch_index]
+        y_batch = yield_all[batch_index]
+
+        _, train_loss = sess.run([model.train_op, model.loss_err], feed_dict={
+            model.x: x_batch,
+            model.y: y_batch,
+            model.lr: config.lr,
+            model.keep_prob: config.drop_out
+            })
+        print train_loss
+
+
+    quit()
+
 
     RMSE_min = 100
     try:
         for i in range(config.train_step):
-            if i==3500:
+            if i==350:
                 config.lr/=10
-                # saver.restore(sess, config.save_path+str(predict_year)+"CNN_model.ckpt")
-                # # Restore log results
-                # npzfile = np.load(config.save_path + str(predict_year)+'result.npz')
-                # summary_train_loss = npzfile['summary_train_loss'].tolist()
-                # summary_eval_loss = npzfile['summary_eval_loss'].tolist()
-                # summary_RMSE = npzfile['summary_RMSE'].tolist()
-                # summary_ME = npzfile['summary_ME'].tolist()
-                # print("Model restored.")
-            if i==20000:
+            if i==2000:
                 config.lr/=10
-                # saver.restore(sess, config.save_path+str(predict_year)+"CNN_model.ckpt")
-                # # Restore log results
-                # npzfile = np.load(config.save_path + str(predict_year)+'result.npz')
-                # summary_train_loss = npzfile['summary_train_loss'].tolist()
-                # summary_eval_loss = npzfile['summary_eval_loss'].tolist()
-                # summary_RMSE = npzfile['summary_RMSE'].tolist()
-                # summary_ME = npzfile['summary_ME'].tolist()
-                # print("Model restored.")
-            # if i==12000:
-            #     config.lr/=10
-                # saver.restore(sess, config.save_path+str(predict_year)+"CNN_model.ckpt")
-                # # Restore log results
-                # npzfile = np.load(config.save_path + str(predict_year)+'result.npz')
-                # summary_train_loss = npzfile['summary_train_loss'].tolist()
-                # summary_eval_loss = npzfile['summary_eval_loss'].tolist()
-                # summary_RMSE = npzfile['summary_RMSE'].tolist()
-                # summary_ME = npzfile['summary_ME'].tolist()
-                # print("Model restored.")
-
-            # No augmentation
-            # index_train_batch = np.random.choice(index_train,size=config.B)
-            # image_train_batch = image_all[index_train_batch,:,0:config.H,:]
-            # yield_train_batch = yield_all[index_train_batch]
-            # year_train_batch = year_all[index_train_batch,np.newaxis]
 
             # try data augmentation while training
             index_train_batch_1 = np.random.choice(index_train,size=config.B)
-            index_train_batch_2 = np.random.choice(index_train,size=config.B)
-            image_train_batch = (image_all[index_train_batch_1,:,0:config.H,:]+image_all[index_train_batch_1,:,0:config.H,:])/2
-            yield_train_batch = (yield_all[index_train_batch_1]+yield_all[index_train_batch_1])/2
+#            index_train_batch_2 = np.random.choice(index_train,size=config.B)
+#            image_train_batch = (image_all[index_train_batch_1,:,0:config.H,:]+image_all[index_train_batch_1,:,0:config.H,:])/2
+#            yield_train_batch = (yield_all[index_train_batch_1]+yield_all[index_train_batch_1])/2
             # year_train_batch = (year_all[index_train_batch_1,np.newaxis]+year_all[index_train_batch_2,np.newaxis])/2
 
+            image_train_batch = image_all[index_train_batch_1]
+            yield_train_batch = yield_all[index_train_batch_1]
             index_validate_batch = np.random.choice(index_validate, size=config.B)
 
             _, train_loss = sess.run([model.train_op, model.loss_err], feed_dict={
@@ -163,7 +133,7 @@ if __name__ == "__main__":
                 model.lr:config.lr,
                 model.keep_prob: config.drop_out
                 })
-
+            print train_loss
             if i%200 == 0:
                 val_loss,fc6,W,B = sess.run([model.loss_err,model.fc6,model.dense_W,model.dense_B], feed_dict={
                     model.x: image_all[index_validate_batch, :, 0:config.H, :],
@@ -240,7 +210,6 @@ if __name__ == "__main__":
             real_out.append(real)
             feature_out.append(feature)
             year_out.append(year_all[i * config.B:(i + 1) * config.B])
-            locations_out.append(locations_all[i * config.B:(i + 1) * config.B])
             index_out.append(index_all[i * config.B:(i + 1) * config.B])
             # print i
         weight_out, b_out = sess.run(
@@ -253,22 +222,21 @@ if __name__ == "__main__":
         real_out=np.concatenate(real_out)
         feature_out=np.concatenate(feature_out)
         year_out=np.concatenate(year_out)
-        locations_out=np.concatenate(locations_out)
         index_out=np.concatenate(index_out)
         
-        path = config.save_path + str(predict_year)+'result_prediction.npz'
-        np.savez(path,
-            pred_out=pred_out,real_out=real_out,feature_out=feature_out,
-            year_out=year_out,locations_out=locations_out,weight_out=weight_out,b_out=b_out,index_out=index_out)
+#        path = config.save_path + str(predict_year)+'result_prediction.npz'
+#        np.savez(path,
+#            pred_out=pred_out,real_out=real_out,feature_out=feature_out,
+#            year_out=year_out,locations_out=locations_out,weight_out=weight_out,b_out=b_out,index_out=index_out)
 
         # RMSE_GP,ME_GP,Average_GP=GaussianProcess(predict_year,path)
         # print 'RMSE_GP',RMSE_GP
         # print 'ME_GP',ME_GP
         # print 'Average_GP',Average_GP
 
-        np.savez(config.save_path+str(predict_year)+'result.npz',
-                        summary_train_loss=summary_train_loss,summary_eval_loss=summary_eval_loss,
-                        summary_RMSE=summary_RMSE,summary_ME=summary_ME)
+#        np.savez(config.save_path+str(predict_year)+'result.npz',
+#                        summary_train_loss=summary_train_loss,summary_eval_loss=summary_eval_loss,
+#                        summary_RMSE=summary_RMSE,summary_ME=summary_ME)
         # plot results
         npzfile = np.load(config.save_path+str(predict_year)+'result.npz')
         summary_train_loss=npzfile['summary_train_loss']
@@ -300,3 +268,11 @@ if __name__ == "__main__":
         plt.title('ME')
         # plt.legend(['RMSE', 'ME'])
         plt.show()
+
+
+
+
+
+
+
+

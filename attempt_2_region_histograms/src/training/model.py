@@ -12,15 +12,10 @@ from datetime import datetime
 class Config():
     B, W, H, C = 32, 32, 35, 10   # 32 per batch, 32 buckets, 35 images, 10 bands per images
     train_step = 25000
-    lr = 1e-3
+    lr = 1e-6
     weight_decay = 0.005
 
     drop_out = 0.25
-    # load_path = '/atlas/u/jiaxuan/data/MODIS_data_county_processed_compressed/'
-    #load_path = "/atlas/u/jiaxuan/data/google_drive/img_output/"
-    # load_path = "/atlas/u/jiaxuan/data/google_drive/img_full_output/"
-    # save_path = '/atlas/u/jiaxuan/data/train_results/histogram_new/test21/'
-    # save_path = '/atlas/u/jiaxuan/data/train_results/histogram_new/test22_optimize/'
     #save_path = '/atlas/u/jiaxuan/data/train_results/final/monthly/'
 
 
@@ -121,37 +116,10 @@ class NeuralModel():
         conv3_3 = conv_relu_batch(conv3_2_d, 512, 3,2, name="conv3_3")
         conv3_3_d = tf.nn.dropout(conv3_3, self.keep_prob)
 
-        # conv4_1 = conv_relu_batch(pool3, 512, 3, name="conv4_1")
-        # conv4_1_d = tf.nn.dropout(conv4_1, self.keep_prob)
-        # conv4_2 = conv_relu_batch(conv4_1_d, 512, 3, name="conv4_2")
-        # conv4_2_d = tf.nn.dropout(conv4_2, self.keep_prob)
-        # conv4_3 = conv_relu_batch(conv4_2_d, 512, 3, name="conv4_3")
-        # conv4_3_d = tf.nn.dropout(conv4_3, self.keep_prob)
-        # pool4 = pool2d(conv4_3_d, 2, name="pool4")
-
-        # input size=48*48, we can only pool 4 times
-        # conv5_1 = conv_relu_batch(pool4, 2, 3, name="conv5_1")
-        # conv5_2 = conv_relu_batch(conv5_1, 2, 3, name="conv5_2")
-        # conv5_3 = conv_relu_batch(conv5_2, 2, 3, name="conv5_3")
-        # pool5 = pool2d(conv5_3, 2, name="pool5")
-
         dim = np.prod(conv3_3_d.get_shape().as_list()[1:])
         flattened = tf.reshape(conv3_3_d, [-1, dim])
-        # flattened_d = tf.nn.dropout(flattened, 0.25)
 
         self.fc6 = dense(flattened, 2048, name="fc6")
-        # self.fc6 = tf.concat(1, [self.fc6_img,self.year])
-
-
-        # fc6_b = batch_normalization(fc6)
-        # self.fc6_r = tf.nn.relu(fc6_b)
-        # self.fc6_d = tf.nn.dropout(fc6_r, self.keep_prob)
-        #
-        #
-        # fc7 = dense(fc6_d, 1024, name="fc7")
-        # fc7_r = tf.nn.relu(fc7)
-        # fc7_b = batch_normalization(fc7_r)
-        # fc7_d = tf.nn.dropout(fc7_b, self.keep_prob)
 
         self.logits = tf.squeeze(dense(self.fc6, 1, name="dense"))
         self.y_final = tf.sigmoid(self.logits)
@@ -159,12 +127,6 @@ class NeuralModel():
         print self.y
         self.loss_err = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.y_final, self.y))
 
-        # l2
-#        self.loss_err = tf.nn.l2_loss(self.logits - self.y)
-        # l1
-        # self.loss_err = tf.reduce_sum(tf.abs(self.logits - self.y))
-        # average
-        # self.loss_err = tf.abs(tf.reduce_sum(self.logits - self.y))
 
         with tf.variable_scope('dense') as scope:
             scope.reuse_variables()
