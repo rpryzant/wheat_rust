@@ -117,8 +117,8 @@ class SurveyFeaturizer:
     def count_obs(self, region, season):
         """ counts num observations of each type for a region/season """
         observations = self.bucketed_observations[season][region]
-        nPos = sum((1 if o.label == 1 else 0) * self.__weight(o.day_of_season) for o in observations)
-        nNeg = sum((0 if o.label == 1 else 1) * self.__weight(o.day_of_season) for o in observations)
+        nPos = sum((1 if o.label == 1 else 0) * self.__weight(o) for o in observations)
+        nNeg = sum((0 if o.label == 1 else 1) * self.__weight(o) for o in observations)
         return nPos, nNeg
 
     def score_region(self, region, season):
@@ -133,17 +133,21 @@ class SurveyFeaturizer:
     def label(self, region, season):
         """ label a region for a season. 1 means dieseasd, 0 means disease-free
 
-            TODO make this smarter!
+            TODO make this smarter! plot distribution!
         """
         return 1.0 if self.score_region(region, season) > 1.0 else 0
 
 
-    def __weight(self, d):
+    def __weight(self, o):
         """ weights observations according to gaussian that's skewed towards the end of the season
             intuitively, observations closer to the end of the season should matter more
 
-            TODO: the real thing, i'm not doing anything right now
+            d is the day of the season
         """
+        d = o.day_of_season
+        return min(1, (d / 30) * 0.2)
+        
+
         return 1.0
 
     def __healthy(self, row):
