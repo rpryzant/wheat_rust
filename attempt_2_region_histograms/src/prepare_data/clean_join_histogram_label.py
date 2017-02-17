@@ -32,7 +32,7 @@ remote ( ssfhs atlas.stanford.edu:/atlas/u/rpryzant/datasets mount point ~/forei
 python clean_and_join.py ~/foreign_mount/ ~/Desktop/test/
 
 
-python clean_join_histogram_label.py ~/foreign_mount/ ../../data/regions.kml ../../data/raw_survey.csv ~/Desktop/test
+python clean_join_histogram_label.py ~/foreign_mount/ ../../data/regions.kml ../../data/raw_survey.csv ~/Desktop/test score_binary
 
 """
 
@@ -45,7 +45,7 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 import time
 sys.path.insert(0, os.path.abspath("../.."))
-from src.label_regions.region_featurizer import *
+from region_featurizer import *
 
 SR_BANDS = 7
 TEMP_BANDS = 2
@@ -113,6 +113,7 @@ def preprocess(sr, temp, gpp):
 
             # guard against prematurely exausting one source (seems like gpp is slightly staggered)
             if not (a_img.shape[2] > 0 and b_img.shape[2] > 0 and c_img.shape[2] > 0):
+                print 'EARLY EXIT: stopping at image', img_i
                 break
 
             timeseries.append(np.concatenate( (a_img, b_img, c_img), axis=2))
@@ -165,6 +166,7 @@ if __name__ == '__main__':
     regions_kml = sys.argv[2]
     survey = sys.argv[3]
     out = sys.argv[4]
+    label_type = sys.argv[5]
 
     if not os.path.exists(out):
         os.mkdir(out)
@@ -197,7 +199,7 @@ if __name__ == '__main__':
             hist = histogram_stacked_image(merged_timeseries)
             print '\t done! took {:.2f} seconds'.format(time.time() - start)
 
-            labels.append(sf.label(region, season, ratio=True))
+            labels.append(sf.label(region, season, type=label_type))
             examples.append(hist)
             ids.append('%s-%s' % (region, season))
 

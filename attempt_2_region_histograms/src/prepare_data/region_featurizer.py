@@ -141,18 +141,25 @@ class SurveyFeaturizer:
         return nPos * 1.0 / (nNeg or 0.5)
 
 
-    def label(self, region, season, ratio=False):
-        """ label a region for a season. 1 means dieseasd, 0 means disease-free
-
-            TODO make this smarter! plot distribution!
+    def label(self, region, season, type=None):
+        """ label a region for a season
+            accepted label types are:
+               - score_ratio
+               - score
         """
-        if ratio:
+        if type is None or type == 'score_binary':
+            # about .25 observations have scores above 1
+            return 1 if self.score_region(region, season) > 1.0 else 0
+        elif type == 'score':
+            return self.score_region(region, season)
+        elif type == 'ratio_binary':
             # about .45 observations have ratios above 2.5
             # there's a bit of a second bimodal peak at 2.5 as well
             return 1 if self.region_ratio(region, season) > 2.5 else 0
-
-        # about .25 observations have scores above 1
-        return 1 if self.score_region(region, season) > 1.0 else 0
+        elif type == 'ratio':
+            return self.region_ratio(region_season)
+        else:
+            print 'ERROR: unsupported label requested'
 
 
     def __weight(self, o):
