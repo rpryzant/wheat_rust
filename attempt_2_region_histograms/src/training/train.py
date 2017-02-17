@@ -132,7 +132,7 @@ if __name__ == "__main__":
                 model.lr:config.lr,
                 model.keep_prob: config.drop_out
                 })
-            print train_loss
+
             if i%20 == 0:
                 val_loss,fc6,W,B = sess.run([model.loss_err,model.fc6,model.dense_W,model.dense_B], feed_dict={
                     model.x: image_all[index_validate_batch, :, 0:config.H, :],
@@ -150,7 +150,6 @@ if __name__ == "__main__":
                 # TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 for j in range(image_validate.shape[0] / config.B):
                     validation_indices = index_validate[j*config.B : (j+1)*config.B]
-                    print validation_indices
                     real_temp = yield_all[validation_indices]
                     pred_temp= sess.run(model.logits, feed_dict={
                         model.x: image_all[validation_indices],
@@ -254,23 +253,26 @@ if __name__ == "__main__":
         plt.ylabel('L2 loss')
         plt.title('Loss curve')
         plt.legend(['Train', 'Validate'])
-        plt.show()
+        plt.savefig('train_val.png')
+#        plt.show()
 
         plt.plot(range(len(summary_RMSE)), summary_RMSE)
         # plt.plot(range(len(summary_ME)), summary_ME)
         plt.xlabel('Training steps')
         plt.ylabel('Error')
         plt.title('RMSE')
+        plt.savefig('rmse.png')
         # plt.legend(['RMSE', 'ME'])
-        plt.show()
+#        plt.show()
 
         # plt.plot(range(len(summary_RMSE)), summary_RMSE)
         plt.plot(range(len(summary_ME)), summary_ME)
         plt.xlabel('Training steps')
         plt.ylabel('Error')
         plt.title('ME')
+        plt.savefig('me.png')
         # plt.legend(['RMSE', 'ME'])
-        plt.show()
+#        plt.show()
 
 
 

@@ -3,6 +3,8 @@ import tensorflow as tf
 import threading
 # from fetch_data_histogram import *
 import sys
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import time
 import scipy.misc
