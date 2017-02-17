@@ -39,6 +39,10 @@ class Thresholders:
     @staticmethod
     def maxSev(sevs):
         return max(sevs)
+    
+    @staticmethod
+    def maxStemStripe3Leaf(sevs):
+        return max(sevs[0], sevs[2], (3 if sevs[1] == 3 else 0))
 
     @staticmethod
     def stemStripe2(sevs):
@@ -117,8 +121,10 @@ class SurveyFeaturizer:
     def count_obs(self, region, season):
         """ counts num observations of each type for a region/season """
         observations = self.bucketed_observations[season][region]
-        nPos = sum((1 if o.label == 1 else 0) * self.__weight(o.day_of_season) for o in observations)
-        nNeg = sum((0 if o.label == 1 else 1) * self.__weight(o.day_of_season) for o in observations)
+
+        nPos = sum(o.label * self.__weight(o) for o in observations if o.label > 0)
+        nNeg = sum(1 * self.__weight(o) for o in observations if o.label == 0)
+
         return nPos, nNeg
 
     def score_region(self, region, season):
@@ -126,25 +132,38 @@ class SurveyFeaturizer:
             likely to be binned as diseased. score is weighted average
             of label ratios
         """
+        observations = self.bucketed_observations[season][region]
+        return sum(o.label * self.__weight(o) for o in observations) * 1.0 / len(observations)
+
+
+    def region_ratio(self, region, season):
         nPos, nNeg = self.count_obs(region, season)
         return nPos * 1.0 / (nNeg or 0.5)
 
 
-    def label(self, region, season):
+    def label(self, region, season, ratio=False):
         """ label a region for a season. 1 means dieseasd, 0 means disease-free
 
-            TODO make this smarter!
+            TODO make this smarter! plot distribution!
         """
-        return 1.0 if self.score_region(region, season) > 1.0 else 0
+        if ratio:
+            # about .45 observations have ratios above 2.5
+            # there's a bit of a second bimodal peak at 2.5 as well
+            return 1 if self.region_ratio(region, season) > 2.5 else 0
+
+        # about .25 observations have scores above 1
+        return 1 if self.score_region(region, season) > 1.0 else 0
 
 
-    def __weight(self, d):
+    def __weight(self, o):
         """ weights observations according to gaussian that's skewed towards the end of the season
             intuitively, observations closer to the end of the season should matter more
 
-            TODO: the real thing, i'm not doing anything right now
+            d is the day of the season
         """
-        return 1.0
+        d = o.day_of_season
+        return min(1, (d / 15) * 0.075)
+
 
     def __healthy(self, row):
         """ tests whether a row should be discarded """
