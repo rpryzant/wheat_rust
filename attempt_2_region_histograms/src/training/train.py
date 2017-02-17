@@ -31,7 +31,7 @@ if __name__ == "__main__":
     images = np.array([x for x in images if len(x) == n_timeseries])
     labels = content['labels']
     locations = content['ids']
-    indices = np.arange(len(images))
+    indices = np.random.shuffle(np.arange(len(images)))
     N = len(images)
     # load images, then
     #   -- only take images with complete timeseries info

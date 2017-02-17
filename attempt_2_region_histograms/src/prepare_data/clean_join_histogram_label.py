@@ -26,13 +26,8 @@ root/
     ...
 
 === USAGE
-local:
-python clean_and_join.py ~/Google\ Drive/ ~/Desktop/test/
-remote ( ssfhs atlas.stanford.edu:/atlas/u/rpryzant/datasets mount point ~/foreign_mount/ ):
-python clean_and_join.py ~/foreign_mount/ ~/Desktop/test/
 
-
-python clean_join_histogram_label.py ~/foreign_mount/ ../../data/regions.kml ../../data/raw_survey.csv ~/Desktop/test score_binary
+python clean_join_histogram_label.py ~/foreign_mount/ ../../data/regions.kml ../../data/raw_survey.csv ~/Desktop/test
 
 """
 
@@ -46,6 +41,8 @@ from tqdm import tqdm
 import time
 sys.path.insert(0, os.path.abspath("../.."))
 from region_featurizer import *
+from joblib import Parallel
+
 
 SR_BANDS = 7
 TEMP_BANDS = 2
@@ -86,17 +83,15 @@ def gen_img_paths(gdrive_root):
 
 def preprocess(sr, temp, gpp):
     """ convert sr/temp/gpp images to np and merge them
+        Note that each image stack is often ragged, i.e. there may be more sr images for a season than gpp. 
+          So when one source is prematurely exhausted, we just zero-pad for the remainder of that band
 
         @return: timeseries, a np array with shape (num images, width, height, num stacked bands)
     """
     def merge_image(a, a_nb, b, b_nb, c, c_nb):
-        """ given np arrays of 3 image stacks all with shape (x, y, num bands * num images) and
-            the number of bands per image, interleave their component images 
-        """
         assert (a.shape[0] == b.shape[0] == c.shape[0] and a.shape[1] == b.shape[1] == c.shape[1]), \
             "merger of images with different sizes! \n\ta: %s \n\tb: %s" % (a.shape, b.shape, c.shape)
 
-        # set up merged image
         m_nb = a_nb + b_nb + c_nb               
         timeseries = []
         m = np.zeros( (a.shape[0], a.shape[1], a.shape[2] + b.shape[2] + c.shape[2]) )
@@ -107,14 +102,13 @@ def preprocess(sr, temp, gpp):
 
             bi = img_i * b_nb
             b_img = b[:,:,bi:bi+b_nb]         # bands from img i of b
+            if b_img.shape[2] == 0:           # 0-pad if b is prematurely exausted
+                b_img = np.zeros( (b.shape[0], b.shape[1], b_nb) )
 
             ci = img_i * c_nb
             c_img = c[:,:,ci:ci+c_nb]         # bands from img i of c
-
-            # guard against prematurely exausting one source (seems like gpp is slightly staggered)
-            if not (a_img.shape[2] > 0 and b_img.shape[2] > 0 and c_img.shape[2] > 0):
-                print 'EARLY EXIT: stopping at image', img_i
-                break
+            if c_img.shape[2] == 0:           # 0-pad if prematurely exausted
+                c_img = np.zeros( (c.shape[0], c.shape[1], c_nb) )
 
             timeseries.append(np.concatenate( (a_img, b_img, c_img), axis=2))
 
@@ -122,7 +116,7 @@ def preprocess(sr, temp, gpp):
 
     def read_tif(path):
         raster = gdal.Open(path).ReadAsArray()            # shape is (nbands, x, y)
-        raster = np.transpose(raster, axes=(1, 2, 0))  # shape is (x, y, nbands)
+        raster = np.transpose(raster, axes=(1, 2, 0))     # shape is (x, y, nbands)
         return raster
 
     sr_arr = read_tif(sr)
@@ -135,8 +129,6 @@ def preprocess(sr, temp, gpp):
 
 def metadata_from_path(path):
     return os.path.basename(path)[:-4], int(re.findall('20\d\d', path)[0])
-
-
 
 
 def histogram_stacked_image(timeseries):
@@ -158,16 +150,9 @@ def histogram_stacked_image(timeseries):
 
     return np.array( [histogram(x) for x in timeseries] )
 
-    
 
 
-if __name__ == '__main__':
-    gdrive = sys.argv[1]
-    regions_kml = sys.argv[2]
-    survey = sys.argv[3]
-    out = sys.argv[4]
-    label_type = sys.argv[5]
-
+def process(gdrive, regions_kml, survey, out, label_type):
     if not os.path.exists(out):
         os.mkdir(out)
         
@@ -193,7 +178,6 @@ if __name__ == '__main__':
             merged_timeseries = preprocess(sr, temp, gpp)
             print '\t done! Took {:.2} seconds'.format(time.time() - start)
 
-            print 
             print '\t histogramming...'
             start = time.time()
             hist = histogram_stacked_image(merged_timeseries)
@@ -209,15 +193,29 @@ if __name__ == '__main__':
         except Exception as e:
             skipped.append( (region, season) )
             print e
-            print 'SOMETHING BROKE!!!!!!!!!!!!!1'
+            print 'ERROR: skipping ', region, season
 
 
     print '====================================='
     print 'writing data to %s...' % out
     start = time.time()
     if not os.path.exists(out): os.mkdir(out)
-    np.savez(out + '/histogram_data.npz', labels=labels, examples=examples, ids=ids)    
+    np.savez(out + '/%s-histogram_data.npz' % label_type, labels=labels, examples=examples, ids=ids)    
     print 'done! took {:.2f} seconds. wrote {} examples. skipped {}.'.format(time.time() - start, len(examples), len(skipped))
-    print 'skipped: '
+    print 'skipped examples: '
     for x in skipped:
         print x
+
+
+
+if __name__ == '__main__':
+    gdrive = sys.argv[1]
+    regions_kml = sys.argv[2]
+    survey = sys.argv[3]
+    out = sys.argv[4]
+
+    label_types = ['score_binary', 'score', 'ratio_binary', 'ratio']
+
+    process(gdrive, regions_kml, survey, out, 'ratio')
+
+#    Parallel(n_jobs=4)(delayed(process)(gdrive, regions_kml, survey, out, label_type) for label_type in label_types)

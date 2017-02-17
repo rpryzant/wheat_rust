@@ -82,7 +82,6 @@ class Observation:
         season_start = datetime(season, 6, 1)
         return (ts - season_start).days
 
-
     def __str__(self):
         s =  'OBSERVATION:\n'
         s += '\t lat: %s\n'
@@ -115,17 +114,21 @@ class SurveyFeaturizer:
 
 
     def surveyed_regions(self, season):
-        """ returns all surveyed regions for a season """
+        """ returns all surveyed regions for a season
+        """
         return self.bucketed_observations[season].keys()
 
+
     def count_obs(self, region, season):
-        """ counts num observations of each type for a region/season """
+        """ counts num observations of each type for a region/season
+        """
         observations = self.bucketed_observations[season][region]
 
         nPos = sum(o.label * self.__weight(o) for o in observations if o.label > 0)
         nNeg = sum(1 * self.__weight(o) for o in observations if o.label == 0)
 
         return nPos, nNeg
+
 
     def score_region(self, region, season):
         """ get score of region for season. higher score means more 
@@ -157,7 +160,7 @@ class SurveyFeaturizer:
             # there's a bit of a second bimodal peak at 2.5 as well
             return 1 if self.region_ratio(region, season) > 2.5 else 0
         elif type == 'ratio':
-            return self.region_ratio(region_season)
+            return self.region_ratio(region, season)
         else:
             print 'ERROR: unsupported label requested'
 
@@ -173,7 +176,8 @@ class SurveyFeaturizer:
 
 
     def __healthy(self, row):
-        """ tests whether a row should be discarded """
+        """ tests whether a row should be discarded
+        """
         ts = PDUtils.ts(row)
         if ( row.Latitude < 0 or row.Longitude < 0 ) or \
            ( ts.month > 3 and ts.month < 6 ) or \
@@ -182,7 +186,6 @@ class SurveyFeaturizer:
             return False
 
         return True
-
 
 
 if __name__ == "__main__":
@@ -201,8 +204,5 @@ if __name__ == "__main__":
 
     assert sf.count_obs("DUGDA", 2013) == (0.0, 6.0)
     assert sf.count_obs("DUGDA", 2007) == (0.0, 1.0)
-
-
-
 
 
