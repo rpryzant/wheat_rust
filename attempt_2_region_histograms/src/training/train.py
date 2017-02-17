@@ -1,8 +1,16 @@
 """
 
-
 python train.py ../../data/training_data/max_average_1005.npz
 
+TODO
+    - tidy up image loading
+    - only take **first X images from each timeseries** (looks like thats what he did)
+    - data augmentation thing
+    - model saving/checkpointing
+    - plot acc, f1
+    - make regression datasets as well
+    - refactor EVERYTHING
+    - 
 """
 from model import *
 import logging
@@ -17,51 +25,47 @@ if __name__ == "__main__":
     filename = sys.argv[1]
     content = np.load(filename)
 
+    # load and processes data
+    n_timeseries = 35
     images = content['examples']
-    # TODO - PAD IN DATA GENERATION
-    images = np.array([x for x in images if len(x) == 35])
-
+    images = np.array([x for x in images if len(x) == n_timeseries])
     labels = content['labels']
     locations = content['ids']
     indices = np.arange(len(images))
-
     N = len(images)
+    # load images, then
+    #   -- only take images with complete timeseries info
+    #   -- subtract off mean per-band histogram
+    #   -- transpose each image to get it in shape (buckets, photos, bands)
+    #          (that's what the model expects)
     n_bands = images[0].shape[1]
     n_buckets = images[0].shape[2]
 
-    # split into train and validate
-    # TODO
-
-    # TODO - I SHOULD BE DOING ALL THIS DURING DATASET GENERATION (padding, etc)
-    # calc train image mean (for each band), and then detract (broadcast)
     sum_per_band = np.zeros((n_bands, n_buckets))
-    # can't use np.sum because images is ragged in the first dimension
-    #  (different seasons have different numbers of images)
     for x in images:
         sum_per_band += np.sum(x, axis=0)    # sum over timeseries
     mean_per_band = sum_per_band * 1.0 / N
     for i in indices:
         images[i] = images[i] - mean_per_band
-    images_new = np.zeros((N, 32, 35, 10)) # examples, buckets, photos, bands
+
+    images_new = np.zeros((N, 32, 35, 10))
     for i in indices:
         images_new[i] = np.transpose(images[i], (2, 0, 1))
-    image_all = images_new
-    yield_all = labels
-    index_all = indices
+    images = images_new
 
-    index_train = indices[:(N-(N/8))]
-    index_validate = indices[(N-(N/8)):]
+    train_indices = indices[:(N-(N/8))]
 
-    image_validate = index_all[index_validate]
-    yield_validate = yield_all[index_validate]
-
+    val_indices = indices[(N-(N/8)):]
+    val_images = images[val_indices]
+    val_labels = labels[val_indices]
 
     model= NeuralModel(config,'net')
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.22)
+
     # Launch the graph.
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-    sess.run(tf.initialize_all_variables())
+    sess.run(tf.global_variables_initializer())
 
 
 
@@ -70,6 +74,7 @@ if __name__ == "__main__":
     summary_eval_loss = []
     summary_RMSE = []
     summary_ME = []
+    summary_accuracy = []
 
     train_loss=0
     val_loss=0
@@ -115,51 +120,46 @@ if __name__ == "__main__":
             if i==2000:
                 config.lr/=10
 
-            # try data augmentation while training
-            index_train_batch_1 = np.random.choice(index_train,size=config.B)
-#            index_train_batch_2 = np.random.choice(index_train,size=config.B)
-#            image_train_batch = (image_all[index_train_batch_1,:,0:config.H,:]+image_all[index_train_batch_1,:,0:config.H,:])/2
-#            yield_train_batch = (yield_all[index_train_batch_1]+yield_all[index_train_batch_1])/2
-            # year_train_batch = (year_all[index_train_batch_1,np.newaxis]+year_all[index_train_batch_2,np.newaxis])/2
-
-            image_train_batch = image_all[index_train_batch_1]
-            yield_train_batch = yield_all[index_train_batch_1]
-            index_validate_batch = np.random.choice(index_validate, size=config.B)
+            # TODO - COULD TRY AUGMENTATION THING HE DOES
+            batch_indices = np.random.choice(train_indices, size=config.B)
 
             _, train_loss = sess.run([model.train_op, model.loss_err], feed_dict={
-                model.x:image_train_batch,
-                model.y:yield_train_batch,
-                model.lr:config.lr,
-                model.keep_prob: config.drop_out
+                    model.x: images[batch_indices],
+                    model.y: labels[batch_indices],
+                    model.lr: config.lr,
+                    model.keep_prob: config.drop_out
                 })
 
             if i%20 == 0:
-                val_loss,fc6,W,B = sess.run([model.loss_err,model.fc6,model.dense_W,model.dense_B], feed_dict={
-                    model.x: image_all[index_validate_batch, :, 0:config.H, :],
-                    model.y: yield_all[index_validate_batch],
+                # do validation
+
+                val_batch_indices = np.random.choice(val_indices, size=config.B)
+                val_loss = sess.run([model.loss_err], feed_dict={
+                    model.x: images[val_batch_indices],
+                    model.y: labels[val_batch_indices],
                     model.keep_prob: 1
                 })
 
-#                print 'predict year'+str(predict_year)+'step'+str(i),train_loss,val_loss,config.lr
-#                logging.info('predict year %d step %d %f %f %f',predict_year,i,train_loss,val_loss,config.lr)
-
-
-                # do validation
                 pred = []
                 real = []
-                # TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                for j in range(image_validate.shape[0] / config.B):
-                    validation_indices = index_validate[j*config.B : (j+1)*config.B]
-                    real_temp = yield_all[validation_indices]
-                    pred_temp= sess.run(model.logits, feed_dict={
-                        model.x: image_all[validation_indices],
-                        model.y: yield_all[validation_indices],
+                for j in range(val_images.shape[0] / config.B):
+                    val_batch_indices = np.arange(j*config.B, (j+1)*config.B)
+                    gold_labels = labels[val_batch_indices]
+                    predictions = sess.run(model.y_final, feed_dict={
+                        model.x: images[val_batch_indices],
+                        model.y: gold_labels,
                         model.keep_prob: 1
                         })
-                    pred.append(pred_temp)
-                    real.append(real_temp)
+                    predictions = [1 if x > 0.5 else 0 for x in predictions]
+                    pred.append(predictions)
+                    real.append(gold_labels)
                 pred=np.concatenate(pred)
                 real=np.concatenate(real)
+
+
+                print pred.tolist()
+                print real.tolist()
+                accuracy = sum(1 if x == y else 0 for (x, y) in zip(pred, real)) * 1.0 / len(pred)
                 RMSE=np.sqrt(np.mean((pred-real)**2))
                 ME=np.mean(pred-real)
 
@@ -172,110 +172,57 @@ if __name__ == "__main__":
                     #     summary_train_loss=summary_train_loss,summary_eval_loss=summary_eval_loss,
                     #     summary_RMSE=summary_RMSE,summary_ME=summary_RMSE)
 
-                print 'Validation set','RMSE',RMSE,'ME',ME,'RMSE_min',RMSE_min
-                logging.info('Validation set RMSE %f ME %f RMSE_min %f',RMSE,ME,RMSE_min)
+                print 'Validation set','RMSE',RMSE,'ME',ME,'RMSE_min',RMSE_min, 'ACC', accuracy
+                logging.info('Validation set RMSE %f ME %f RMSE_min %f ACC %f',RMSE,ME,RMSE_min,accuracy)
             
                 summary_train_loss.append(train_loss)
                 summary_eval_loss.append(val_loss)
                 summary_RMSE.append(RMSE)
                 summary_ME.append(ME)
-
+                summary_accuracy.append(accuracy)
 
 
     except KeyboardInterrupt:
         print 'stopped'
 
     finally:
-
-        # save
-#        save_path = saver.save(sess, config.save_path + str(predict_year)+'CNN_model.ckpt')
-#        print('save in file: %s' % save_path)
-#        logging.info('save in file: %s' % save_path)
-
-        # save result
-        pred_out = []
-        real_out = []
-        feature_out = []
-        year_out = []
-        locations_out =[]
-        index_out = []
-        for i in range(image_all.shape[0] / config.B):
-            feature,pred = sess.run(
-                [model.fc6,model.logits], feed_dict={
-                model.x: image_all[i * config.B:(i + 1) * config.B,:,0:config.H,:],
-                model.y: yield_all[i * config.B:(i + 1) * config.B],
-                model.keep_prob:1
-            })
-            real = yield_all[i * config.B:(i + 1) * config.B]
-
-            pred_out.append(pred)
-            real_out.append(real)
-            feature_out.append(feature)
-#            year_out.append(year_all[i * config.B:(i + 1) * config.B])
-            index_out.append(index_all[i * config.B:(i + 1) * config.B])
-            # print i
-        weight_out, b_out = sess.run(
-            [model.dense_W, model.dense_B], feed_dict={
-                model.x: image_all[0 * config.B:(0 + 1) * config.B, :, 0:config.H, :],
-                model.y: yield_all[0 * config.B:(0 + 1) * config.B],
-                model.keep_prob: 1
-            })
-        pred_out=np.concatenate(pred_out)
-        real_out=np.concatenate(real_out)
-        feature_out=np.concatenate(feature_out)
-#        year_out=np.concatenate(year_out)
-        index_out=np.concatenate(index_out)
-        
-#        path = config.save_path + str(predict_year)+'result_prediction.npz'
-#        np.savez(path,
-#            pred_out=pred_out,real_out=real_out,feature_out=feature_out,
-#            year_out=year_out,locations_out=locations_out,weight_out=weight_out,b_out=b_out,index_out=index_out)
-
-        # RMSE_GP,ME_GP,Average_GP=GaussianProcess(predict_year,path)
-        # print 'RMSE_GP',RMSE_GP
-        # print 'ME_GP',ME_GP
-        # print 'Average_GP',Average_GP
-
-#        np.savez(config.save_path+str(predict_year)+'result.npz',
-#                        summary_train_loss=summary_train_loss,summary_eval_loss=summary_eval_loss,
-#                        summary_RMSE=summary_RMSE,summary_ME=summary_ME)
-        # plot results
-#        npzfile = np.load(config.save_path+str(predict_year)+'result.npz')
-#        summary_train_loss=npzfile['summary_train_loss']
-#        summary_eval_loss=npzfile['summary_eval_loss']
-#        summary_RMSE = npzfile['summary_RMSE']
-#        summary_ME = npzfile['summary_ME']
-
         # Plot the points using matplotlib
         plt.plot(range(len(summary_train_loss)), summary_train_loss)
         plt.plot(range(len(summary_eval_loss)), summary_eval_loss)
-        plt.xlabel('Training steps')
-        plt.ylabel('L2 loss')
+        plt.xlabel('Epochs')
+        plt.ylabel('Cross-entropy')
         plt.title('Loss curve')
         plt.legend(['Train', 'Validate'])
         plt.savefig('train_val.png')
+        plt.close()
 #        plt.show()
 
         plt.plot(range(len(summary_RMSE)), summary_RMSE)
         # plt.plot(range(len(summary_ME)), summary_ME)
-        plt.xlabel('Training steps')
+        plt.xlabel('Epochs')
         plt.ylabel('Error')
         plt.title('RMSE')
         plt.savefig('rmse.png')
+        plt.close()
         # plt.legend(['RMSE', 'ME'])
 #        plt.show()
 
         # plt.plot(range(len(summary_RMSE)), summary_RMSE)
         plt.plot(range(len(summary_ME)), summary_ME)
-        plt.xlabel('Training steps')
+        plt.xlabel('Epochs')
         plt.ylabel('Error')
         plt.title('ME')
         plt.savefig('me.png')
+        plt.close()
         # plt.legend(['RMSE', 'ME'])
 #        plt.show()
 
-
-
+        plt.plot(range(len(summary_accuracy)), summary_accuracy)
+        plt.xlabel('Epochs')
+        plt.ylabel('Val Accuracy')
+        plt.title('ME')
+        plt.savefig('acc.png')
+        plt.close()
 
 
 
