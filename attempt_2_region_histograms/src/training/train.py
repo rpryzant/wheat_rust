@@ -1,6 +1,6 @@
 """
 
-python train.py ../../data/training_data/max_average_1005.npz
+python train.py ../../data/training/score_binary-histogram_data.npz classification
 
 TODO
     - tidy up image loading
@@ -18,6 +18,8 @@ import sys
 import numpy as np
 
 if __name__ == "__main__":
+    task_type = sys.argv[2]
+
     # Create a coordinator
     config = Config()
 
@@ -31,7 +33,9 @@ if __name__ == "__main__":
     images = np.array([x for x in images if len(x) == n_timeseries])
     labels = content['labels']
     locations = content['ids']
-    indices = np.random.shuffle(np.arange(len(images)))
+    indices = np.arange(len(images))
+    np.random.shuffle(indices)
+
     N = len(images)
     # load images, then
     #   -- only take images with complete timeseries info
@@ -59,7 +63,7 @@ if __name__ == "__main__":
     val_images = images[val_indices]
     val_labels = labels[val_indices]
 
-    model= NeuralModel(config,'net')
+    model= NeuralModel(config,'net', task_type)
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.22)
 
@@ -197,6 +201,7 @@ if __name__ == "__main__":
         plt.close()
 #        plt.show()
 
+
         plt.plot(range(len(summary_RMSE)), summary_RMSE)
         # plt.plot(range(len(summary_ME)), summary_ME)
         plt.xlabel('Epochs')
@@ -226,5 +231,5 @@ if __name__ == "__main__":
 
 
 
-
+        
 

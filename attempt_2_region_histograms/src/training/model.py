@@ -91,7 +91,7 @@ class batch_norm(object):
         return normed
 
 class NeuralModel():
-    def __init__(self, config, name):
+    def __init__(self, config, name, task_type):
 
         self.x = tf.placeholder(tf.float32, [None, config.W, config.H, config.C], name="x")
         self.y = tf.placeholder(tf.float32, [None])
@@ -125,9 +125,12 @@ class NeuralModel():
 
         self.logits = tf.squeeze(dense(self.fc6, 1, name="dense"))
         self.y_final = tf.sigmoid(self.logits)
-        print self.y_final
-        print self.y
-        self.loss_err = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.logits, self.y))
+
+
+        if task_type == 'classification':
+            self.loss_err = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.logits, self.y))
+        else:
+            self.loss_err = tf.nn.l2_loss(self.logits - self.y)
 
 
         with tf.variable_scope('dense') as scope:
