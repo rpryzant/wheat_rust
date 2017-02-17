@@ -94,7 +94,6 @@ def time_series(s, e):
 # read in dataset from generate_dataset.py
 # structured as [ [label, [[day of year, pixel], ...] ], ... ]
 dataset = np.load(sys.argv[1])
-# dataset = np.load(sys.argv[1]).astype(np.float32)
 # load in model
 model_path = None
 if len(sys.argv) > 2:

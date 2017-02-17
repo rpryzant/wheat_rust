@@ -3,6 +3,8 @@ import tensorflow as tf
 import threading
 # from fetch_data_histogram import *
 import sys
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import time
 import scipy.misc
@@ -125,7 +127,7 @@ class NeuralModel():
         self.y_final = tf.sigmoid(self.logits)
         print self.y_final
         print self.y
-        self.loss_err = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.y_final, self.y))
+        self.loss_err = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.logits, self.y))
 
 
         with tf.variable_scope('dense') as scope:
