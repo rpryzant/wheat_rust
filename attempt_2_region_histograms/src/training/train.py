@@ -52,6 +52,9 @@ if __name__ == "__main__":
     index_train = indices[:(N-(N/8))]
     index_validate = indices[(N-(N/8)):]
 
+    image_validate = index_all[index_validate]
+    yield_validate = yield_all[index_validate]
+
 
     model= NeuralModel(config,'net')
 
@@ -90,22 +93,18 @@ if __name__ == "__main__":
         print 'No history model found'
     # #########################
     
-    for i in range(config.train_step):
-        
-        batch_index = np.random.choice(index_train, size=config.B)
-        x_batch = image_all[batch_index]
-        y_batch = yield_all[batch_index]
+#    for i in range(config.train_step):
+#        batch_index = np.random.choice(index_train, size=config.B)
+#        x_batch = image_all[batch_index]
+#        y_batch = yield_all[batch_index]
+#        _, train_loss = sess.run([model.train_op, model.loss_err], feed_dict={
+#            model.x: x_batch,
+#            model.y: y_batch,
+#            model.lr: config.lr,
+#            model.keep_prob: config.drop_out
+#            })
+#        print train_loss
 
-        _, train_loss = sess.run([model.train_op, model.loss_err], feed_dict={
-            model.x: x_batch,
-            model.y: y_batch,
-            model.lr: config.lr,
-            model.keep_prob: config.drop_out
-            })
-        print train_loss
-
-
-    quit()
 
 
     RMSE_min = 100
@@ -134,24 +133,28 @@ if __name__ == "__main__":
                 model.keep_prob: config.drop_out
                 })
             print train_loss
-            if i%200 == 0:
+            if i%20 == 0:
                 val_loss,fc6,W,B = sess.run([model.loss_err,model.fc6,model.dense_W,model.dense_B], feed_dict={
                     model.x: image_all[index_validate_batch, :, 0:config.H, :],
                     model.y: yield_all[index_validate_batch],
                     model.keep_prob: 1
                 })
 
-                print 'predict year'+str(predict_year)+'step'+str(i),train_loss,val_loss,config.lr
-                logging.info('predict year %d step %d %f %f %f',predict_year,i,train_loss,val_loss,config.lr)
-            if i%200 == 0:
+#                print 'predict year'+str(predict_year)+'step'+str(i),train_loss,val_loss,config.lr
+#                logging.info('predict year %d step %d %f %f %f',predict_year,i,train_loss,val_loss,config.lr)
+
+
                 # do validation
                 pred = []
                 real = []
+                # TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 for j in range(image_validate.shape[0] / config.B):
-                    real_temp = yield_validate[j * config.B:(j + 1) * config.B]
+                    validation_indices = index_validate[j*config.B : (j+1)*config.B]
+                    print validation_indices
+                    real_temp = yield_all[validation_indices]
                     pred_temp= sess.run(model.logits, feed_dict={
-                        model.x: image_validate[j * config.B:(j + 1) * config.B,:,0:config.H,:],
-                        model.y: yield_validate[j * config.B:(j + 1) * config.B],
+                        model.x: image_all[validation_indices],
+                        model.y: yield_all[validation_indices],
                         model.keep_prob: 1
                         })
                     pred.append(pred_temp)
@@ -186,9 +189,9 @@ if __name__ == "__main__":
     finally:
 
         # save
-        save_path = saver.save(sess, config.save_path + str(predict_year)+'CNN_model.ckpt')
-        print('save in file: %s' % save_path)
-        logging.info('save in file: %s' % save_path)
+#        save_path = saver.save(sess, config.save_path + str(predict_year)+'CNN_model.ckpt')
+#        print('save in file: %s' % save_path)
+#        logging.info('save in file: %s' % save_path)
 
         # save result
         pred_out = []
@@ -209,7 +212,7 @@ if __name__ == "__main__":
             pred_out.append(pred)
             real_out.append(real)
             feature_out.append(feature)
-            year_out.append(year_all[i * config.B:(i + 1) * config.B])
+#            year_out.append(year_all[i * config.B:(i + 1) * config.B])
             index_out.append(index_all[i * config.B:(i + 1) * config.B])
             # print i
         weight_out, b_out = sess.run(
@@ -221,7 +224,7 @@ if __name__ == "__main__":
         pred_out=np.concatenate(pred_out)
         real_out=np.concatenate(real_out)
         feature_out=np.concatenate(feature_out)
-        year_out=np.concatenate(year_out)
+#        year_out=np.concatenate(year_out)
         index_out=np.concatenate(index_out)
         
 #        path = config.save_path + str(predict_year)+'result_prediction.npz'
@@ -238,11 +241,11 @@ if __name__ == "__main__":
 #                        summary_train_loss=summary_train_loss,summary_eval_loss=summary_eval_loss,
 #                        summary_RMSE=summary_RMSE,summary_ME=summary_ME)
         # plot results
-        npzfile = np.load(config.save_path+str(predict_year)+'result.npz')
-        summary_train_loss=npzfile['summary_train_loss']
-        summary_eval_loss=npzfile['summary_eval_loss']
-        summary_RMSE = npzfile['summary_RMSE']
-        summary_ME = npzfile['summary_ME']
+#        npzfile = np.load(config.save_path+str(predict_year)+'result.npz')
+#        summary_train_loss=npzfile['summary_train_loss']
+#        summary_eval_loss=npzfile['summary_eval_loss']
+#        summary_RMSE = npzfile['summary_RMSE']
+#        summary_ME = npzfile['summary_ME']
 
         # Plot the points using matplotlib
         plt.plot(range(len(summary_train_loss)), summary_train_loss)
