@@ -12,6 +12,8 @@ from datetime import datetime
 # datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 class Config():
+#    B, W, H, C = 32, 35, 32, 10
+#    B, W, H, C = 32, 35, 10, 32
     B, W, H, C = 32, 32, 35, 10   # 32 per batch, 32 buckets, 35 images, 10 bands per images
     train_step = 25000
     lr = 1e-6
