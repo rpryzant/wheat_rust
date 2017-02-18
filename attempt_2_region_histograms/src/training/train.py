@@ -18,6 +18,8 @@ import sys
 import numpy as np
 
 if __name__ == "__main__":
+    print 'INITIALIZING: configuration, data...'
+
     task_type = sys.argv[2]
 
     # Create a coordinator
@@ -51,7 +53,6 @@ if __name__ == "__main__":
     mean_per_band = sum_per_band * 1.0 / N
     for i in indices:
         images[i] = images[i] - mean_per_band
-
     images_new = np.zeros((N, 32, 35, 10))
     for i in indices:
         images_new[i] = np.transpose(images[i], (2, 0, 1))
@@ -63,6 +64,10 @@ if __name__ == "__main__":
     val_images = images[val_indices]
     val_labels = labels[val_indices]
 
+    print 'DATA DONE. TRAINING SET SIZE: %s TEST SET: %s' % (len(train_indices), len(val_indices))
+
+    print 'INITIALIZING MODEL'
+
     model= NeuralModel(config,'net', task_type)
 
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.22)
@@ -71,7 +76,7 @@ if __name__ == "__main__":
     sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
     sess.run(tf.global_variables_initializer())
 
-
+    print 'MODEL DONE.'
 
 
     summary_train_loss = []
@@ -89,6 +94,7 @@ if __name__ == "__main__":
     # add saver
     saver=tf.train.Saver()
     # Restore variables from disk.
+    print 'ATTEMTING RESTORE' 
     try:
         saver.restore(sess, config.save_path+str(predict_year)+"CNN_model.ckpt")
     # Restore log results
@@ -115,7 +121,7 @@ if __name__ == "__main__":
 #        print train_loss
 
 
-
+    print 'TRAINING...'
     RMSE_min = 100
     try:
         for i in range(config.train_step):
@@ -146,15 +152,17 @@ if __name__ == "__main__":
 
                 pred = []
                 real = []
+                target_op = model.y_final if task_type == 'classification' else model.logits
                 for j in range(val_images.shape[0] / config.B):
                     val_batch_indices = np.arange(j*config.B, (j+1)*config.B)
                     gold_labels = labels[val_batch_indices]
-                    predictions = sess.run(model.y_final, feed_dict={
+                    predictions = sess.run(target_op, feed_dict={
                         model.x: images[val_batch_indices],
                         model.y: gold_labels,
                         model.keep_prob: 1
                         })
-                    predictions = [1 if x > 0.5 else 0 for x in predictions]
+                    if task_type == 'classification':
+                        predictions = [1 if x > 0.5 else 0 for x in predictions]
                     pred.append(predictions)
                     real.append(gold_labels)
                 pred=np.concatenate(pred)
