@@ -34,6 +34,10 @@ if __name__ == "__main__":
     images = content['examples']
     images = np.array([x for x in images if len(x) == n_timeseries])
     labels = content['labels']
+
+    images = images[:200]
+    labels = labels[:200]
+
     locations = content['ids']
     indices = np.arange(len(images))
     np.random.shuffle(indices)
@@ -142,8 +146,9 @@ if __name__ == "__main__":
 
             if i%20 == 0:
                 # do validation
-
-                val_batch_indices = np.random.choice(val_indices, size=config.B)
+                # TODO -RESTORE REAL VALIDATION
+#                val_batch_indices = np.random.choice(val_indices, size=config.B) 
+                val_batch_indices = np.random.choice(train_indices, size=config.B)
                 val_loss = sess.run([model.loss_err], feed_dict={
                     model.x: images[val_batch_indices],
                     model.y: labels[val_batch_indices],
@@ -161,8 +166,9 @@ if __name__ == "__main__":
                         model.y: gold_labels,
                         model.keep_prob: 1
                         })
-                    if task_type == 'classification':
-                        predictions = [1 if x > 0.5 else 0 for x in predictions]
+                    # TODO -RESTORE THIS 
+          #          if task_type == 'classification':        
+           #             predictions = [1 if x > 0.5 else 0 for x in predictions]
                     pred.append(predictions)
                     real.append(gold_labels)
                 pred=np.concatenate(pred)

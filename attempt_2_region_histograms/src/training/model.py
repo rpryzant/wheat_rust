@@ -16,7 +16,7 @@ class Config():
 #    B, W, H, C = 32, 35, 10, 32
     B, W, H, C = 32, 32, 35, 10   # 32 per batch, 32 buckets, 35 images, 10 bands per images
     train_step = 25000
-    lr = 1e-6
+    lr = 0.003
     weight_decay = 0.005
 
     drop_out = 0.25
@@ -126,6 +126,7 @@ class NeuralModel():
         self.fc6 = dense(flattened, 2048, name="fc6")
 
         self.logits = tf.squeeze(dense(self.fc6, 1, name="dense"))
+
         self.y_final = tf.sigmoid(self.logits)
 
 
