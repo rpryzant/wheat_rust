@@ -14,7 +14,7 @@ from datetime import datetime
 class Config():
 #    B, W, H, C = 32, 35, 32, 10
 #    B, W, H, C = 32, 35, 10, 32
-    B, W, H, C = 32, 32, 35, 10   # 32 per batch, 32 buckets, 35 images, 10 bands per images
+    B, W, H, C = 5, 32, 35, 10   # 32 per batch, 32 buckets, 35 images, 10 bands per images
     train_step = 25000
     lr = 0.003
     weight_decay = 0.005

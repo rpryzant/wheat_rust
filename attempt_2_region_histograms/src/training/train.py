@@ -12,14 +12,20 @@ TODO
     - refactor EVERYTHING
     - 
 """
-from model import *
+#from model import *
+from lstm_model import *
 import logging
 import sys
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+
+
 
 if __name__ == "__main__":
     print 'INITIALIZING: configuration, data...'
-
     task_type = sys.argv[2]
 
     # Create a coordinator
@@ -35,8 +41,8 @@ if __name__ == "__main__":
     images = np.array([x for x in images if len(x) == n_timeseries])
     labels = content['labels']
 
-    images = images[:200]
-    labels = labels[:200]
+    images = images[:config.B]
+    labels = labels[:config.B]
 
     locations = content['ids']
     indices = np.arange(len(images))
@@ -67,65 +73,70 @@ if __name__ == "__main__":
     val_indices = indices[(N-(N/8)):]
     val_images = images[val_indices]
     val_labels = labels[val_indices]
-
     print 'DATA DONE. TRAINING SET SIZE: %s TEST SET: %s' % (len(train_indices), len(val_indices))
 
     print 'INITIALIZING MODEL'
-
     model= NeuralModel(config,'net', task_type)
-
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.22)
-
-    # Launch the graph.
-    sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+    sess = tf.Session()
     sess.run(tf.global_variables_initializer())
-
     print 'MODEL DONE.'
 
 
-    summary_train_loss = []
-    summary_eval_loss = []
-    summary_RMSE = []
-    summary_ME = []
-    summary_accuracy = []
 
-    train_loss=0
-    val_loss=0
-    val_prediction = 0
-    val_deviation = np.zeros([config.B])
-    # #########################
-    # block when test
-    # add saver
-    saver=tf.train.Saver()
-    # Restore variables from disk.
-    print 'ATTEMTING RESTORE' 
+    print 'TRAINING...' 
+    lr = config.lr   
     try:
-        saver.restore(sess, config.save_path+str(predict_year)+"CNN_model.ckpt")
-    # Restore log results
-        npzfile = np.load(config.save_path + str(predict_year)+'result.npz')
-        summary_train_loss = npzfile['summary_train_loss'].tolist()
-        summary_eval_loss = npzfile['summary_eval_loss'].tolist()
-        summary_RMSE = npzfile['summary_RMSE'].tolist()
-        summary_ME = npzfile['summary_ME'].tolist()
-        print("Model restored.")
-    except:
-        print 'No history model found'
-    # #########################
-    
-#    for i in range(config.train_step):
-#        batch_index = np.random.choice(index_train, size=config.B)
-#        x_batch = image_all[batch_index]
-#        y_batch = yield_all[batch_index]
-#        _, train_loss = sess.run([model.train_op, model.loss_err], feed_dict={
-#            model.x: x_batch,
-#            model.y: y_batch,
-#            model.lr: config.lr,
-#            model.keep_prob: config.drop_out
-#            })
-#        print train_loss
+        losses = []
+        for epoch in range(2000):
+            if epoch % 300 == 0:
+                lr *= 0.95
+            epoch_loss = 0
+            for i in range(N / config.B):
+                batch_index = np.random.choice(indices, size=config.B)
+                x_batch = images#[batch_index]
+                y_batch = labels#[batch_index]
+                _, train_loss, pred = sess.run([model.train_op, model.loss_err, model.y_final], feed_dict={
+                    model.x: x_batch,
+                    model.y: y_batch,
+                    model.lr: config.lr,
+                    model.keep_prob: config.drop_out
+                    })
+                epoch_loss += train_loss
+            losses.append(epoch_loss)
+            print 'pred', pred
+            print 'true', y_batch
+            print 'epoch', epoch, 'loss', epoch_loss
+            print
+    except KeyboardInterrupt:
+        print 'stopped'
+
+    finally:
+        print 'here'
+        plt.plot(range(len(losses)), losses)
+        plt.xlabel('Epochs')
+        plt.ylabel('total loss')
+        plt.title('loss')
+        plt.savefig('LOSSES.png')
+        plt.close()
 
 
-    print 'TRAINING...'
+
+
+
+
+
+
+
+
+
+
+
+    quit()
+###############################################################################3
+
+
+
+
     RMSE_min = 100
     try:
         for i in range(config.train_step):
