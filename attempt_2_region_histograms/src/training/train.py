@@ -3,16 +3,11 @@
 python train.py ../../data/training/score_binary-histogram_data.npz classification
 
 TODO
-    - tidy up image loading
-    - only take **first X images from each timeseries** (looks like thats what he did)
-    - data augmentation thing
-    - model saving/checkpointing
-    - plot acc, f1
-    - make regression datasets as well
-    - refactor EVERYTHING
-    - 
+    - EXPERIMENT WITH LABELINGS
+    - initialize with crop weights
+    - cut down timeseries, get more observations in there
 """
-#from model import *
+#from cnn_model import *
 from lstm_model import *
 import logging
 import sys
@@ -40,40 +35,39 @@ if __name__ == "__main__":
     images = content['examples']
     images = np.array([x for x in images if len(x) == n_timeseries])
     labels = content['labels']
+    N = len(images)
+#    images = images[:config.B]
+#    labels = labels[:config.B]
 
-    images = images[:config.B]
-    labels = labels[:config.B]
+
+
 
     locations = content['ids']
-    indices = np.arange(len(images))
-    np.random.shuffle(indices)
+#    indices = np.arange(len(images))
+#    np.random.shuffle(indices)
+#    N = len(images)
 
-    N = len(images)
     # load images, then
     #   -- only take images with complete timeseries info
     #   -- subtract off mean per-band histogram
+    #   -- divide by sd per feature per per-band histogram
     #   -- transpose each image to get it in shape (buckets, photos, bands)
     #          (that's what the model expects)
-    n_bands = images[0].shape[1]
-    n_buckets = images[0].shape[2]
+    dim = images.shape
+    concat = np.reshape(images, (-1, dim[2], dim[3]))   # concatenate images for each timeseries
+    means = np.mean(concat, axis=0)
+    stds = np.std(concat, axis=0)
+    for i in range(len(images)):
+        images[i] = (images[i] - means) / (stds + 1e-6)
+    images = np.transpose(images, (0, 3, 1, 2))   
 
-    sum_per_band = np.zeros((n_bands, n_buckets))
-    for x in images:
-        sum_per_band += np.sum(x, axis=0)    # sum over timeseries
-    mean_per_band = sum_per_band * 1.0 / N
-    for i in indices:
-        images[i] = images[i] - mean_per_band
-    images_new = np.zeros((N, 32, 35, 10))
-    for i in indices:
-        images_new[i] = np.transpose(images[i], (2, 0, 1))
-    images = images_new
+    train_images = images[:(N-(N/8))]
+    train_labels = labels[:(N-(N/8))]
+    val_images = images[(N-(N/8)):]
+    val_labels = labels[(N-(N/8)):]
 
-    train_indices = indices[:(N-(N/8))]
 
-    val_indices = indices[(N-(N/8)):]
-    val_images = images[val_indices]
-    val_labels = labels[val_indices]
-    print 'DATA DONE. TRAINING SET SIZE: %s TEST SET: %s' % (len(train_indices), len(val_indices))
+    print 'DATA DONE. TRAINING SET SIZE: %s TEST SET: %s' % (len(train_images), len(val_images))
 
     print 'INITIALIZING MODEL'
     model= NeuralModel(config,'net', task_type)
@@ -86,35 +80,54 @@ if __name__ == "__main__":
     print 'TRAINING...' 
     lr = config.lr   
     try:
-        losses = []
+        train_losses, val_losses = [], []
+
         for epoch in range(2000):
             if epoch % 300 == 0:
                 lr *= 0.95
-            epoch_loss = 0
-            for i in range(N / config.B):
-                batch_index = np.random.choice(indices, size=config.B)
-                x_batch = images#[batch_index]
-                y_batch = labels#[batch_index]
+            epoch_train_loss = 0
+            for i in range(len(train_images) / config.B):
+                x_batch = train_images[i:i+config.B]
+                y_batch = train_labels[i:i+config.B]
+
                 _, train_loss, pred = sess.run([model.train_op, model.loss_err, model.y_final], feed_dict={
                     model.x: x_batch,
                     model.y: y_batch,
                     model.lr: config.lr,
                     model.keep_prob: config.drop_out
                     })
-                epoch_loss += train_loss
-            losses.append(epoch_loss)
-            print 'pred', pred
-            print 'true', y_batch
-            print 'epoch', epoch, 'loss', epoch_loss
+                epoch_train_loss += train_loss
+            epoch_train_loss = epoch_train_loss * 1.0 / len(train_images)
+            train_losses.append(epoch_train_loss)
+
+            epoch_val_loss = 0
+            for i in range(len(val_images) / config.B):
+                x_batch = val_images[i:i+config.B]
+                y_batch = val_labels[i:i+config.B]
+
+                val_loss, pred = sess.run([model.loss_err, model.y_final], feed_dict={
+                    model.x: x_batch,
+                    model.y: y_batch,
+                    model.lr: config.lr,
+                    model.keep_prob: 1.0
+                    })
+                epoch_val_loss += val_loss
+            epoch_val_loss = epoch_val_loss * 1.0 / len(val_images)
+            val_losses.append(epoch_val_loss)
+
+
+            print 'epoch', epoch, 'train loss', epoch_train_loss, 'val loss', epoch_val_loss
             print
     except KeyboardInterrupt:
         print 'stopped'
 
     finally:
-        print 'here'
-        plt.plot(range(len(losses)), losses)
+        print 'plotting train_losses...'
+        plt.plot(range(len(train_losses)), train_losses)
+        plt.plot(range(len(val_losses)), val_losses)
         plt.xlabel('Epochs')
         plt.ylabel('total loss')
+        plt.legend(['Train', 'Validate'])
         plt.title('loss')
         plt.savefig('LOSSES.png')
         plt.close()
