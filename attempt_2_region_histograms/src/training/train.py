@@ -33,8 +33,11 @@ if __name__ == "__main__":
     # load and processes data
     n_timeseries = 35
     images = content['examples']
-    images = np.array([x for x in images if len(x) == n_timeseries])
     labels = content['labels']
+    filtered_indices = np.array([i for i, x in enumerate(images) if len(images[i]) == n_timeseries])  # because ragged arrays :/
+    images = np.array([i for i in images[filtered_indices]])
+    labels = np.array(labels[filtered_indices])
+
     N = len(images)
 #    images = images[:config.B]
 #    labels = labels[:config.B]
@@ -61,6 +64,9 @@ if __name__ == "__main__":
         images[i] = (images[i] - means) / (stds + 1e-6)
     images = np.transpose(images, (0, 3, 1, 2))   
 
+#    images = images[:, :, :, [9]]
+    print images.shape
+    
     train_images = images[:(N-(N/8))]
     train_labels = labels[:(N-(N/8))]
     val_images = images[(N-(N/8)):]

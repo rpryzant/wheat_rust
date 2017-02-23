@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 
 class Config():
-    B, W, H, C = 5, 32, 35, 10
+    B, W, H, C = 5, 32, 35, 10 #1
 
     layers = 3
 
