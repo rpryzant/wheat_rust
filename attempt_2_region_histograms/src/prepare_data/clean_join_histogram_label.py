@@ -27,7 +27,7 @@ root/
 
 === USAGE
 
-python clean_join_histogram_label.py ~/foreign_mount/ ../../data/regions.kml ../../data/raw_survey.csv ~/Desktop/test
+python clean_join_histogram_label.py ~/Google\ Drive/ ../../data/regions.kml ../../data/raw_survey.csv ~/Desktop/test
 
 """
 
@@ -122,6 +122,7 @@ def preprocess(sr, temp, gpp):
     sr_arr = read_tif(sr)
     temp_arr = read_tif(temp)
     gpp_arr = read_tif(gpp)
+    print '\t shapes: sr: ',  sr_arr.shape, 'temp: ', temp_arr.shape, 'gpp: ', gpp_arr.shape
     timeseries = merge_image(sr_arr, SR_BANDS, temp_arr, TEMP_BANDS, gpp_arr, GPP_BANDS)
 
     return timeseries
@@ -214,8 +215,8 @@ if __name__ == '__main__':
     survey = sys.argv[3]
     out = sys.argv[4]
 
-    label_types = ['score_binary', 'score', 'ratio_binary', 'ratio']
+#    label_types = ['score_binary', 'score', 'ratio_binary', 'ratio']
 
-    process(gdrive, regions_kml, survey, out, 'ratio')
+    process(gdrive, regions_kml, survey, out, 'score_binary')
 
 #    Parallel(n_jobs=4)(delayed(process)(gdrive, regions_kml, survey, out, label_type) for label_type in label_types)

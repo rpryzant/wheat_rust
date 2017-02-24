@@ -152,7 +152,7 @@ class SurveyFeaturizer:
         """
         if type is None or type == 'score_binary':
             # about .25 observations have scores above 1
-            return 1 if self.score_region(region, season) > 1.0 else 0
+            return 1 if self.score_region(region, season) > 2.5 else 0
         elif type == 'score':
             return self.score_region(region, season)
         elif type == 'ratio_binary':
