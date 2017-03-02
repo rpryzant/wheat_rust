@@ -70,17 +70,10 @@ if __name__ == "__main__":
 #    images = images[:, :, :, [9]]
     print images.shape
     
-#    train_images = images[:(N-(N/12))]
-#    train_labels = labels[:(N-(N/12))]
-#    val_images = images[(N-(N/12)):]
-#    val_labels = labels[(N-(N/12)):]
-#
-
-    train_images = images[(N/12):]
-    train_labels = labels[(N/12):]
-    val_images = images[:(N/12)]
-    val_labels = labels[:(N/12)]
-
+    train_images = images[:(N-(N/12))]
+    train_labels = labels[:(N-(N/12))]
+    val_images = images[(N-(N/12)):]
+    val_labels = labels[(N-(N/12)):]
 
 
     print 'DATA DONE. TRAINING SET SIZE: %s TEST SET: %s' % (len(train_images), len(val_images))

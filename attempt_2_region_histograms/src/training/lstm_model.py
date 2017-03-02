@@ -18,10 +18,11 @@ import matplotlib.pyplot as plt
 
 class Config():
     B, W, H, C = 5, 32, 35, 10 #1
+#    B, W, H, C = 5, 32, 25, 10 #1
 
     layers = 3
 
-    lstm_h = 128
+    lstm_h = 256
 
     dense = 256
 
@@ -29,7 +30,7 @@ class Config():
 #    lr = 1.0
     lr = 0.0003
     drop_out = 0.75
-
+    save_path = '../../data/jiaxuans_models/hist_hidden_256/2015CNN_model'
 
 
 def run_affine(inputs, H, N=None, name="affine_layer"):
