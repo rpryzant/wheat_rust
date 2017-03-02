@@ -43,6 +43,9 @@ class Dataset():
     def get_data(self):
         return self.data
 
+    def get_labels(self):
+        return zip(*self.data)[1]
+
 
 
 class DataIterator():

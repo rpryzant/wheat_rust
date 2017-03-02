@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 unit tests:
 python lstm_model.py classification
@@ -83,7 +84,7 @@ class LSTM():
     def __init__(self, config):
 #        self.sess = sess
         self.config = config
-
+#        with tf.variable_scope(name):
         self.x = tf.placeholder(tf.float32, [None, config.W, config.H, config.C], name='x')
         self.y = tf.placeholder(tf.float32, [None])
         self.lr = tf.placeholder(tf.float32, [])
@@ -123,6 +124,7 @@ class LSTM():
 
 
     def fit_and_predict(self, data, val_data, sess):
+
         def train_epoch(data):
             i = 0
             train_loss = 0
@@ -143,7 +145,8 @@ class LSTM():
 
         def predict(data):
             i = 0
-            out = []
+            out_pred = []
+            out_prob = []
             total_loss = 0.0
             while i + self.batch_size < len(data):
                 batch = data[i: i + self.batch_size]
@@ -154,25 +157,55 @@ class LSTM():
                     self.keep_prob: 1.0
                     })
                 total_loss += loss
-                out = out + [1 if x > 0.5 else 0 for x in pred]
+                out_prob += [x for x in pred]
+                out_pred = out_pred + [1 if x > 0.5 else 0 for x in pred]
                 i += self.batch_size
-            acc = accuracy(out, zip(*data)[1])
-            return out, total_loss / (i / self.batch_size), acc
+
+            # batches dont fit into data nicely, so get the last batch
+            # this is SO hacky and gross and i'm completely disgusted with 
+            # myself but here we are...  ¯\_(ツ)_/¯ (oh and im also ignoring
+            # the loss from this little overhang. sigh.)
+            # whoever's reading this....i'm so sorry will you ever find 
+            # room in your heart for forgiveness\
+            # !!!!!!! TODO -- REFACTOR !!!!!!!!!
+            final_batch = data[-self.batch_size:]
+            x_batch, y_batch = zip(*final_batch)
+            loss, pred = sess.run([self.loss, self.y_final], feed_dict={
+                self.x: x_batch,
+                self.y: y_batch,
+                self.keep_prob: 1.0
+                })
+            remainder = len(data) - i
+            to_add = pred[-remainder:]
+            out_prob = out_prob + list(to_add[:])
+            out_pred = out_pred + [1 if x > 0.5 else 0 for x in to_add[:]]
+            acc = accuracy(out_pred, zip(*data)[1])
+            return out_prob, out_pred, total_loss / (i / self.batch_size), acc
 
         epoch = 0
         best_loss = float('inf')
         best_acc = -float('inf')
-        pred, loss, acc = predict(val_data)
+
+        prob, pred, loss, acc = predict(val_data)
+        best_preds = pred, prob
+
         train_epoch(data)
+ 
         epochs = 1
         while loss < best_loss or acc > best_acc:
+            print '\t\t epoch  ', epochs
+
             best_loss = loss if loss < best_loss else best_loss
             best_acc = acc if acc > best_acc else best_acc
-            pred, loss, acc = predict(val_data)
+            best_preds = (pred, prob) if acc > best_acc else best_preds
+
+            prob, pred, loss, acc = predict(val_data)
 #            print loss, acc, epochs
             train_epoch(data)
             epochs += 1
-        return best_loss, best_acc, epochs
+
+        best_pred, best_prob = best_preds      #sigh
+        return best_prob, best_pred, epochs
 
 
 

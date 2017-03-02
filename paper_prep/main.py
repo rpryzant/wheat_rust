@@ -1,91 +1,141 @@
-
-
-
 from src.models.lstm import LSTM
-from src.models.svm import SVM
 from src.data.data_utils import Dataset, DataIterator
 from src.training.evaluation import accuracy, Evaluator
 import tensorflow as tf
 from joblib import Parallel, delayed
 import random
+import time
+from src.models.sklearn_models import *
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_curve
+import random
+
+
+
+MODEL_CLASS_MAPPINGS = {
+    'lstm': LSTM,
+    'conv_lstm': LSTM,
+    'svm': SVM,
+    'forest': RandomForest,
+    'regression': LogisticRegression
+}
 
 
 class Config():
-    def __init__(self):
-        self.B, self.W, self.H, self.C = 5, 32, 35, 10
-        self.layers = 3
-        self.lstm_h = 256
-        self.dense = 256
-        self.train_step = 10000
-        self.lr = 0.0003
-        self.keep_prob = 0.50
+    def __init__(self, settings={}):
+        self.settings = settings
 
-        self.model_type = 'conv_lstm'
-        self.num_lstm_filters = 128
+        self.B = settings.get('B', 8)
+        self.W = settings.get('W', 32)
+        self.H = settings.get('H', 35)
+        self.C = settings.get('C', 10)
 
-        self.l2 = 0.0  # amount of l2 reg
-        self.l1 = 0.0
+        self.layers = settings.get('L', 2)
+        self.lstm_h = settings.get('lstm_h', 128)
+        self.dense = settings.get('dense', 128)
+        self.lr = settings.get('lr', 0.0003)
+        self.keep_prob = settings.get('keep_prob', 0.50)
+
+        self.model_type = settings.get('model_type', 'lstm')
+        self.model_class = MODEL_CLASS_MAPPINGS[self.model_type]
+
+        self.num_lstm_filters = settings.get('lstm_conv_filters', 128)
+
+        self.l2 = settings.get('l2', 0.0)
+        self.l1 = settings.get('l1', 0.0)
+
+        self.num_estimators = settings.get('forest_estimators', 10)
+        self.forest_depth = settings.get('forest_depth', None)
+
 
         self.data_path = 'datasets/score_binary-histogram_data_1.npz'
 
 
     def __str__(self):
-        print 'b, w, h, c: ', self.B, self.W, self.H, self.C
-        print 'layers: ', self.layers
-        print 'lstm h: ', self.lstm_h
-        print 'dense: ', self.dense
-        print 'keep_prob: ', self.keep_prob
-        print 'model_type: ', self.model_type
-        print 'num lstm filters: ', self.num_lstm_filters
-        return ''
+        return '\n'.join('%s \t %s' % (k, v) for (k, v) in self.settings.iteritems())
 
 
-c = Config()
+def performance(yhat, yprobs, y):
+    print yhat
+    print yprobs
+    print y
+    acc = accuracy_score(y, yhat)
+    f1 = f1_score(y, yhat)
+    precision = precision_score(y, yhat)
+    recall = recall_score(y, yhat)
+    rocs = roc_curve(y, yprobs, pos_label=1)
+    return acc, f1, precision, recall, rocs
+
+
+
+
 
 def evaluate(combo):
-    c = Config()
 
-    c.B = combo[0]
-    c.layers = combo[1]
-    c.lstm_h = combo[2]
-    c.dense = combo[3]
-    c.keep_prob = combo[4]
-    c.model_type = combo[5]
-    if len(combo) > 6:
-        c.num_lstm_filters = combo[6]
+    c = Config(combo)
+    print '======================='
+    print 'EVALUATING'
+    print str(combo)
 
-    model = LSTM(c)
+    start = time.time()
+    print '\t building dataset...'
+    dataset = Dataset(c.data_path)
+    data_iterator = DataIterator(dataset)
 
-    accs = 0
-    for val, train in data_iterator.xval_split(12):
+    print '\t cross-validating...'
+    preds = []
+    probs = []
+    val_labels = []
+    model = c.model_class(c)
+    for i, (val, train) in enumerate(data_iterator.xval_split(12)):
+        print '\t split %s...' % i
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            loss, acc, epochs = model.fit_and_predict(train, val, sess)
-#            print 'FINAL: ', loss, acc, epochs
-            accs += acc
+            val_probs, val_preds, epochs = model.fit_and_predict(train, val, sess)
+            preds += list(val_preds)
+            probs += list(val_probs)
+            val_labels += list(zip(*val)[1])
+
+    tf.reset_default_graph()
+
+    acc, f1, precision, recall, rocs = performance(preds, probs, val_labels)
     print '======================================'
-    print str(config)
-    print 'AVERAGE ACC       ', accs * 1.0 / 12
+    print str(c)
+    print 'COMBO:            ', combo
+    print 'TOOK              ', time.time() - start, ' seconds'
+    print 'ACC               ', acc 
+    print 'F1                ', f1
+    print 'PRE               ', precision
+    print 'REC               ', recall
     print '======================================='
+
+
+
+
 #    sess.close()
+evaluate({'model_type': 'regression'})
+evaluate({})
+evaluate({'model_type': 'svm'})
+evaluate({'model_type': 'forest'})
 
-dataset = Dataset(c.data_path)
 
-data_iterator = DataIterator(dataset)
 
-#l = SVM(c)
-combos = []
-for b in [1, 3, 5, 7, 12]:
-    for l in [1, 2, 3]:
-        for h in [128, 256, 512]:
-            for d in [128, 256, 512]:
-                for kp in [0.25, 0.4, 0.5, 0.7]:
-                    for model_type in ['lstm', 'conv_lstm']:
-                        if model_type == 'conf_lstm':
-                            for nf in [32, 64, 128]:
-                                combos.append([b, l, h, d, kp, model_type, nf])
-                        else:
-                            combos.append([b, l, h, d, kp, model_type])
-random.shuffle(combos)
-Parallel(n_jobs=4)(delayed(evaluate)(combo) for combo in combos)
+def generate_configurations():
+    batch_sizes = [2, 4, 8, 12]
+    keep_probs = [0.25, 0.4, 0.5, 0.65]
+    model_types = ['lstm', 'conv_lsvm', 'svm', 'forest', 'regression']
+    lsm_layers = [1, 2, 3]
+    lstm_hidden_size = [64, 128, 256]
+    lstm_dense_size = [64, 128, 256]
+    lstm_conv_filters = [16, 32, 64, 128]   
+
+    # while True:
+    #     config = {
+    #         'B':
+    #     }
+
+
+#for combo in combos:
+#    evaluate(combo)
+
+Parallel(n_jobs=2)(delayed(evaluate)(combo) for combo in combos)
 
