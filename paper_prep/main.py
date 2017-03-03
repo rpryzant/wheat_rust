@@ -16,6 +16,7 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 import random
 from src.utils.logger import Logger
 import sys
+import json
 
 MODEL_CLASS_MAPPINGS = {
     'lstm': LSTM,
@@ -24,6 +25,8 @@ MODEL_CLASS_MAPPINGS = {
     'forest': RandomForest,
     'regression': LogisticRegression
 }
+LOGGER = Logger(sys.argv[1])
+COMPLETED = Logger(sys.argv[2])
 
 
 class Config():
@@ -99,9 +102,7 @@ def performance(yhat, yprobs, y):
 
 
 
-def evaluate(combo, LOGGER, COMPLETED):
-
-    c = Config(combo)
+def evaluate(c, LOGGER, COMPLETED):
     LOGGER.log('EVALUATING ' + c.serialize())
 
     start = time.time()
@@ -115,7 +116,6 @@ def evaluate(combo, LOGGER, COMPLETED):
     val_labels = []
     model = c.model_class(c)
     for i, (val, train) in enumerate(data_iterator.xval_split(12)):
-        LOGGER.log('\t\t split %s...' % i)
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             val_probs, val_preds, epochs = model.fit_and_predict(train, val, sess)
@@ -125,29 +125,38 @@ def evaluate(combo, LOGGER, COMPLETED):
 
     tf.reset_default_graph()
     acc, f1, precision, recall, rocs = performance(preds, probs, val_labels)
-
-    LOGGER.log('\t Done! Summary:')
-    LOGGER.log('\t\t ' + json.dumps(summary))
-    LOGGER.log('\t\t acc: ' + str(acc))
-    LOGGER.log('\t\t f1: ' + str(f1))
-
+    rocs = map(lambda x: list(x), rocs)
     summary = {
         'acc': acc,
         'f1': f1,
         'precision': precision,
         'recall': recall,
-        'rocs': rocs,
+        'rocs': str(rocs),    # TODO  JSON DUMPS DOESNT LIKE FLOATS?????????
         'time': time.time() - start,
-        'setting': c.serialize()
     }
     output = {
-        'combo': combo,
+        'combo': c.serialize(),
         'result': summary
     }
+
+    LOGGER.log('\t Done! Summary:')
+    LOGGER.log('\t\t time: ' + str(time.time() - start))
+    LOGGER.log('\t\t acc: ' + str(acc))
+    LOGGER.log('\t\t f1: ' + str(f1))
+
     COMPLETED.log(json.dumps(output), show_time=False)
 
+s = 'lstm_h-64|B-4|dense-256|keep_prob-0.4|L-1|dataset-standard|conv_type-max_row|lstm_conv_filters-128|model_type-conv_lstm'
+
+c = Config(serialized=s)
+
+evaluate(c, LOGGER, COMPLETED)
+
+evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
+evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
 
 
+# quit()
 #    sess.close()
 # evaluate({})
 # evaluate({'model_type': 'regression'})
@@ -189,6 +198,7 @@ def generate_configurations():
                             setting['dataset'] = 'standard'
                             if mt == 'conv_lstm':
                                 for ct in conv_types:
+                                    if ct != 'max_row': continue   # TODO OTHER TYPES
                                     for lcf in lstm_conv_filters:
                                         setting['conv_type'] = 'max_row'
                                         setting['lstm_conv_filters'] = lcf
@@ -200,11 +210,11 @@ def generate_configurations():
 
 alt, trad = generate_configurations()
 
-LOGGER = Logger(sys.argv[1])
-COMPLETED = Logger(sys.argv[2])
+
 
 for combo in alt:
-    evaluate(combo, LOGGER, COMPLETED)
+    c = Config(combo)
+    evaluate(c, LOGGER, COMPLETED)
 
 #Parallel(n_jobs=2)(delayed(evaluate)(combo, LOGGER, COMPLETED) for combo in combos)
 
