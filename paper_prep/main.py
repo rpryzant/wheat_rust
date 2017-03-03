@@ -55,9 +55,6 @@ class Config():
 
 
 def performance(yhat, yprobs, y):
-    print yhat
-    print yprobs
-    print y
     acc = accuracy_score(y, yhat)
     f1 = f1_score(y, yhat)
     precision = precision_score(y, yhat)
@@ -112,8 +109,8 @@ def evaluate(combo):
 
 
 #    sess.close()
-evaluate({'model_type': 'regression'})
 evaluate({})
+evaluate({'model_type': 'regression'})
 evaluate({'model_type': 'svm'})
 evaluate({'model_type': 'forest'})
 

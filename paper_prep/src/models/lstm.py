@@ -180,6 +180,7 @@ class LSTM():
             out_prob = out_prob + list(to_add[:])
             out_pred = out_pred + [1 if x > 0.5 else 0 for x in to_add[:]]
             acc = accuracy(out_pred, zip(*data)[1])
+
             return out_prob, out_pred, total_loss / (i / self.batch_size), acc
 
         epoch = 0
@@ -190,20 +191,20 @@ class LSTM():
         best_preds = pred, prob
 
         train_epoch(data)
- 
+
         epochs = 1
         while loss < best_loss or acc > best_acc:
             print '\t\t epoch  ', epochs
 
             best_loss = loss if loss < best_loss else best_loss
-            best_acc = acc if acc > best_acc else best_acc
-            best_preds = (pred, prob) if acc > best_acc else best_preds
+            if acc > best_acc:
+                best_acc = acc
+                best_preds = (pred, prob)
 
             prob, pred, loss, acc = predict(val_data)
 #            print loss, acc, epochs
             train_epoch(data)
             epochs += 1
-
         best_pred, best_prob = best_preds      #sigh
         return best_prob, best_pred, epochs
 
