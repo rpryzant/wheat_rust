@@ -10,7 +10,6 @@ import numpy as numpy
 import tensorflow as tf
 import sys
 import numpy as np
-from tqdm import tqdm
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -221,7 +220,7 @@ if __name__ == '__main__':
     dummy_y = np.random.randint(2, size=config.B) if test_type == 'classification' else np.random.rand(config.B)
     print dummy_x.shape
     losses = []
-    for i in tqdm(range(1000)):
+    for i in range(1000):
         # model.state = model.cell.zero_state(config.B, tf.float32)
         if i % 100 == 0:
             config.lr /= 2

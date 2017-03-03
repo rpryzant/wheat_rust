@@ -61,7 +61,7 @@ class Config():
         self.forest_depth = settings.get('forest_depth', None)
 
 
-        self.data_path = 'datasets/score_binary_histogram_data_1.npz'
+        self.data_path = 'datasets/score_binary_threshold_1_buckets_%s.npz' % str(settings.get('W', 32))
         self.dataset = settings.get('datset', 'standard')
 
 
@@ -102,7 +102,9 @@ def performance(yhat, yprobs, y):
 
 
 
-def evaluate(c, LOGGER, COMPLETED):
+def evaluate(combo, LOGGER, COMPLETED):
+    c = Config(combo)
+
     LOGGER.log('EVALUATING ' + c.serialize())
 
     start = time.time()
@@ -148,12 +150,10 @@ def evaluate(c, LOGGER, COMPLETED):
 
 s = 'lstm_h-64|B-4|dense-256|keep_prob-0.4|L-1|dataset-standard|conv_type-max_row|lstm_conv_filters-128|model_type-conv_lstm'
 
-c = Config(serialized=s)
-
-evaluate(c, LOGGER, COMPLETED)
-
-evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
-evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
+#c = Config(serialized=s)
+#evaluate(c, LOGGER, COMPLETED)
+#evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
+#evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
 
 
 # quit()
@@ -176,6 +176,8 @@ def generate_configurations():
     lstm_conv_filters = [16, 32, 64, 128]   
     conv_types = ['max_row', 'middle_row', 'col_pool']
 
+    hist_buckets = [16, 25, 32, 40]
+
     traditional_models = []
     for mt in model_types[2:]:
         traditional_models.append({'model_type': mt})
@@ -186,35 +188,49 @@ def generate_configurations():
             for ll in lstm_layers:
                 for lhs in lstm_hidden_size:
                     for lds in lstm_dense_size:
-                        setting = {
-                            'B': bs,
-                            'keep_prob': kp,
-                            'L': ll,
-                            'lstm_h': lhs,
-                            'dense': lds
-                        }       
-                        for mt in model_types[:2]:
-                            setting['model_type'] = mt
-                            setting['dataset'] = 'standard'
-                            if mt == 'conv_lstm':
-                                for ct in conv_types:
-                                    if ct != 'max_row': continue   # TODO OTHER TYPES
-                                    for lcf in lstm_conv_filters:
-                                        setting['conv_type'] = 'max_row'
-                                        setting['lstm_conv_filters'] = lcf
-                                        alt_models.append(setting)
-                            else:
-                                alt_models.append(setting)
+                        for nb in hist_buckets:
+                            for mt in model_types[:2]:
+                                if mt == 'conv_lstm':
+                                    for ct in conv_types:
+                                        if ct != 'max_row': continue
+                                        for lcf in lstm_conv_filters:
+                                            setting = {
+                                                'W': nb,
+                                                'B': bs,
+                                                'keep_prob': kp,
+                                                'L': ll,
+                                                'lstm_h': lhs,
+                                                'dense': lds,
+                                                'model_type': mt,
+                                                'dataset': 'standard',     # TODO OTHER DATASET
+                                                'conv_type': 'max_row',    # TODO OTHER TYPES
+                                                'lstm_conv_filters': lcf
+
+                                            }       
+                                            alt_models.append(setting)
+                                else:
+                                    setting = {
+                                        'W': nb,
+                                        'B': bs,
+                                        'keep_prob': kp,
+                                        'L': ll,
+                                        'lstm_h': lhs,
+                                        'dense': lds,
+                                        'model_type': mt,
+                                        'dataset': 'standard'
+                                    }       
+                                    alt_models.append(setting)
+
+
     random.shuffle(alt_models)
     return alt_models, traditional_models
 
 alt, trad = generate_configurations()
 
-
+#print len(alt)
 
 for combo in alt:
-    c = Config(combo)
-    evaluate(c, LOGGER, COMPLETED)
+    evaluate(combo, LOGGER, COMPLETED)
 
-#Parallel(n_jobs=2)(delayed(evaluate)(combo, LOGGER, COMPLETED) for combo in combos)
+#Parallel(n_jobs=2)(delayed(evaluate)(combo, LOGGER, COMPLETED) for combo in alt)
 
