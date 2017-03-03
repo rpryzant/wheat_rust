@@ -194,8 +194,6 @@ class LSTM():
 
         epochs = 1
         while loss < best_loss or acc > best_acc:
-            print '\t\t epoch  ', epochs
-
             best_loss = loss if loss < best_loss else best_loss
             if acc > best_acc:
                 best_acc = acc
