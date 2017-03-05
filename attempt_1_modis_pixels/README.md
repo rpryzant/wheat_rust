@@ -29,7 +29,7 @@ and differences this "peak pixel" with a pixel from one month later. The intuiti
 
 Similar data collection schemes as # 1 and 2, but use a Recurrent Neural Network for our classifier. This lets us feed in the whole timeseries and model temporal structure of the whole year.
 
-<img src="diagrams/RNN.png" width="600">
+<img src="diagrams/rnn.png" width="600">
 
 #### 4: RNN Growing Season
 
