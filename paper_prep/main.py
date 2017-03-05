@@ -17,6 +17,7 @@ import random
 from src.utils.logger import Logger
 import sys
 import json
+import os
 
 MODEL_CLASS_MAPPINGS = {
     'lstm': LSTM,
@@ -118,7 +119,9 @@ def evaluate(combo, LOGGER, COMPLETED):
     val_labels = []
     model = c.model_class(c)
     for i, (val, train) in enumerate(data_iterator.xval_split(12)):
-        with tf.Session() as sess:
+        os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Or whichever device you would like to use
+        gpu_options = tf.GPUOptions(allow_growth=True)
+        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True)) as sess:
             sess.run(tf.global_variables_initializer())
             val_probs, val_preds, epochs = model.fit_and_predict(train, val, sess)
             preds += list(val_preds)
