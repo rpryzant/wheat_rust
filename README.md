@@ -10,7 +10,7 @@ The pathogen we're concerned with is named *Puccinia triticina* and is commonly 
 
 ### Data
 
-For labels, we have close to 10,000 field-level observations taken over the course of a decade. Each observation has a latitude, longitude, date, and infection severity rating for three strains of our pathogen. Below is a subset of the data for the 2010 growing season.
+For labels, we have close to 10,000 field-level observations taken over the course of a decade. These surveys were conducted by the folks at [RustTracker.org](http://rusttracker.cimmyt.org/) Each observation has a latitude, longitude, date, and infection severity rating for three strains of our pathogen. Below is a subset of the data for the 2010 growing season.
 
 ![](img/survey.png)
 
