@@ -1,0 +1,11 @@
+
+
+raw_survey.csv       --  the raw survey data that forms the basis of this study
+
+regions.kml          --  map of Ethiopian districts (woredas)
+regionsCaps.kml      --  same as above, but with woreda names in caps
+
+training_data/       --  finalized data that's been run through the complete
+                          histogram, label, and join pipeline. these data are
+                          fed into the models for learning
+
