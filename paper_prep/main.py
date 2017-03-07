@@ -4,11 +4,12 @@ python main.py [logging loc] [completed loc]
 """
 
 
+from src.models.cnn import CNN
 from src.models.lstm import LSTM
 from src.data.data_utils import Dataset, DataIterator
 from src.training.evaluation import accuracy, Evaluator
 import tensorflow as tf
-from joblib import Parallel, delayed
+#from joblib import Parallel, delayed   # because atlas 5 doesn't have this
 import random
 import time
 from src.models.sklearn_models import *
@@ -22,6 +23,7 @@ import os
 MODEL_CLASS_MAPPINGS = {
     'lstm': LSTM,
     'conv_lstm': LSTM,
+    'conv': CNN,
     'svm': SVM,
     'forest': RandomForest,
     'regression': LogisticRegression
@@ -31,9 +33,9 @@ COMPLETED = Logger(sys.argv[2])
 
 
 class Config():
-    def __init__(self, settings={}, serialized=None):
-        if serialized is not None:
-            self.settings = self.deserialize(serialized)
+    def __init__(self, settings={}):
+        if type(settings) == type('string'):
+            self.settings = deserialize(serialized)
         else:
             self.settings = settings
 
@@ -52,11 +54,17 @@ class Config():
         self.model_class = MODEL_CLASS_MAPPINGS[self.model_type]
 
         self.num_lstm_filters = settings.get('lstm_conv_filters', 128)
-        self.conv_type = settings.get('conv_type', 'max_row')
-
+        self.conv_type = settings.get('conv_type', 'valid')
 
         self.l2 = settings.get('l2', 0.0)
         self.l1 = settings.get('l1', 0.0)
+
+        # size of conv filter banks
+        self.l1_n = settings.get('l1_n', 128)
+        self.l2_n = settings.get('l2_n', 128)
+        self.l3_n = settings.get('l3_n', 128)
+        # filter size
+        self.filter_size = settings.get('filter_size', 3)
 
         self.num_estimators = settings.get('forest_estimators', 10)
         self.forest_depth = settings.get('forest_depth', None)
@@ -73,29 +81,32 @@ class Config():
     def serialize(self):
         return '|'.join('%s-%s' % (k, v) for (k, v) in self.settings.iteritems())
 
-    def deserialize(self, s):
-        def isint(s):
-            return s.isdigit()
-        def isfloat(s):
-            try:
-                float(s)
-                return True
-            except ValueError:
-                return False            
+def deserialize(s):
+    def isint(s):
+        return s.isdigit()
+    def isfloat(s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False            
 
-        out = {}
-        for x in s.split('|'):
-            [k, v] = x.split('-')
-            out[k] = int(v) if isint(v) else float(v) if isfloat(v) else v
-        return out
+    out = {}
+    for x in s.split('|'):
+        [k, v] = x.split('-')
+        out[k] = int(v) if isint(v) else float(v) if isfloat(v) else v
+    return out
 
 
 
 def performance(yhat, yprobs, y):
+    yhat = np.array(yhat)
+    yprobs = np.array(yprobs)
+    y = np.array(y)
     acc = accuracy_score(y, yhat)
     f1 = f1_score(y, yhat)
-    precision = precision_score(y, yhat)
-    recall = recall_score(y, yhat)
+    precision = precision_score(1 - y, 1 - yhat)
+    recall = recall_score(1 - y, 1 - yhat)
     rocs = roc_curve(y, yprobs, pos_label=1)
     return acc, f1, precision, recall, rocs
 
@@ -119,6 +130,7 @@ def evaluate(combo, LOGGER, COMPLETED):
     val_labels = []
     model = c.model_class(c)
     for i, (val, train) in enumerate(data_iterator.xval_split(12)):
+        print '\t\t split ', i
         os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Or whichever device you would like to use
         gpu_options = tf.GPUOptions(allow_growth=True)
         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True)) as sess:
@@ -151,10 +163,14 @@ def evaluate(combo, LOGGER, COMPLETED):
 
     COMPLETED.log(json.dumps(output), show_time=False)
 
-s = 'lstm_h-64|B-4|dense-256|keep_prob-0.4|L-1|dataset-standard|conv_type-max_row|lstm_conv_filters-128|model_type-conv_lstm'
+#s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard'
+#s = 'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-max_row|dataset-standard'
+#evaluate(deserialize(s), LOGGER, COMPLETED)
 
-#c = Config(serialized=s)
-#evaluate(c, LOGGER, COMPLETED)
+#evaluate({'model_type': 'conv', 'W': 40, 'dense':64}, LOGGER, COMPLETED)
+
+#quit()
+
 #evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
 #evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
 
@@ -169,70 +185,83 @@ s = 'lstm_h-64|B-4|dense-256|keep_prob-0.4|L-1|dataset-standard|conv_type-max_ro
 
 
 def generate_configurations():
-    batch_sizes = [2, 4, 8, 12]
-    keep_probs = [0.25, 0.4, 0.5, 0.65]
-    model_types = ['lstm', 'conv_lstm', 'svm', 'forest', 'regression']
-    lstm_layers = [1, 2, 3, 4]
-    lstm_hidden_size = [64, 128, 256]
-    lstm_dense_size = [64, 128, 256]
-
-    lstm_conv_filters = [16, 32, 64, 128]   
-    conv_types = ['max_row', 'middle_row', 'col_pool']
-
-    hist_buckets = [16, 25, 32, 40]
-
     traditional_models = []
-    for mt in model_types[2:]:
+    for mt in ['regression', 'forest', 'svm']:
         traditional_models.append({'model_type': mt})
 
     alt_models = []
-    for bs in batch_sizes:
-        for kp in keep_probs:
-            for ll in lstm_layers:
-                for lhs in lstm_hidden_size:
-                    for lds in lstm_dense_size:
-                        for nb in hist_buckets:
-                            for mt in model_types[:2]:
-                                if mt == 'conv_lstm':
-                                    for ct in conv_types:
-                                        if ct != 'max_row': continue
-                                        for lcf in lstm_conv_filters:
-                                            setting = {
-                                                'W': nb,
-                                                'B': bs,
-                                                'keep_prob': kp,
-                                                'L': ll,
-                                                'lstm_h': lhs,
-                                                'dense': lds,
-                                                'model_type': mt,
-                                                'dataset': 'standard',     # TODO OTHER DATASET
-                                                'conv_type': 'max_row',    # TODO OTHER TYPES
-                                                'lstm_conv_filters': lcf
+    for batch_size in [2]:
+        for keep_prob in [0.5]:
+            for model_type in ['lstm', 'conv_lstm', 'conv']:
+                for dense_size in [64]:
+                    for buckets in [30, 35, 40, 45, 50, 55, 60, 65]:
+                        for lstm_h in [64, 128, 256, 512]:
 
-                                            }       
-                                            alt_models.append(setting)
-                                else:
-                                    setting = {
-                                        'W': nb,
-                                        'B': bs,
-                                        'keep_prob': kp,
-                                        'L': ll,
-                                        'lstm_h': lhs,
-                                        'dense': lds,
-                                        'model_type': mt,
-                                        'dataset': 'standard'
-                                    }       
-                                    alt_models.append(setting)
+                            if model_type == 'conv_lstm':
+                                for conv_type in ['pool', 'valid', '2d']:
+                                    for num_filters in [16, 32, 64]:
+                                        s = {
+                                            'W': buckets,
+                                            'B': batch_size,
+                                            'keep_prob': keep_prob,
+                                            'L': 1,
+                                            'lstm_h': lstm_h,
+                                            'dense': dense_size,
+                                            'model_type': model_type,
+                                            'dataset': 'standard',
+                                            'conv_type': conv_type,
+                                            'lstm_conv_filters': num_filters,
+                                        }
+                                        alt_models.append(s)
+
+                            elif model_type == 'conv':
+                                for layer_1_num_filters in [128, 256, 512]:
+                                    for layer_2_num_filters in [128, 256, 512]:
+                                        for layer_3_num_filters in [128, 256, 512]:
+                                            for filter_size in [3, 5, 9]:
+                                                s = {
+                                                    'l1_n': layer_1_num_filters,
+                                                    'l2_n': layer_3_num_filters,
+                                                    'l3_n': layer_3_num_filters,
+                                                    'W': buckets,
+                                                    'B': batch_size,
+                                                    'keep_prob': keep_prob,
+                                                    'L': 1,
+                                                    'lstm_h': lstm_h,
+                                                    'dense': dense_size,
+                                                    'model_type': model_type,
+                                                    'dataset': 'standard',
+                                                    'conv_type': conv_type,
+                                                    'lstm_conv_filters': num_filters,
+                                                    'filter_size': filter_size                                            
+                                                }
+                                                alt_models.append(s)
+
+                            else:
+                                s = {
+                                    'W': buckets,
+                                    'B': batch_size,
+                                    'keep_prob': keep_prob,
+                                    'L': 4,
+                                    'lstm_h': lstm_h,
+                                    'dense': dense_size,
+                                    'model_type': 'lstm',
+                                    'dataset': 'standard'
+                                }
+                                alt_models.append(s)
+
 
 
     random.shuffle(alt_models)
     return alt_models, traditional_models
 
 alt, trad = generate_configurations()
-
+print len(alt)
+#quit()
 #print len(alt)
 
 for combo in alt:
+    print combo
     evaluate(combo, LOGGER, COMPLETED)
 
 #Parallel(n_jobs=2)(delayed(evaluate)(combo, LOGGER, COMPLETED) for combo in alt)
