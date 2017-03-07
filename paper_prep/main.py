@@ -13,7 +13,7 @@ import tensorflow as tf
 import random
 import time
 from src.models.sklearn_models import *
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_curve
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_curve, roc_auc_score
 import random
 from src.utils.logger import Logger
 import sys
@@ -108,7 +108,8 @@ def performance(yhat, yprobs, y):
     precision = precision_score(1 - y, 1 - yhat)
     recall = recall_score(1 - y, 1 - yhat)
     rocs = roc_curve(y, yprobs, pos_label=1)
-    return acc, f1, precision, recall, rocs
+    auc = roc_auc_score(y, yprobs)
+    return acc, f1, precision, recall, rocs, auc
 
 
 
@@ -141,11 +142,12 @@ def evaluate(combo, LOGGER, COMPLETED):
             val_labels += list(zip(*val)[1])
 
     tf.reset_default_graph()
-    acc, f1, precision, recall, rocs = performance(preds, probs, val_labels)
+    acc, f1, precision, recall, rocs, auc = performance(preds, probs, val_labels)
     rocs = map(lambda x: list(x), rocs)
     summary = {
         'acc': acc,
         'f1': f1,
+        'auc': auc,
         'precision': precision,
         'recall': recall,
         'rocs': str(rocs),    # TODO  JSON DUMPS DOESNT LIKE FLOATS?????????

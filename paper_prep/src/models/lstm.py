@@ -21,13 +21,13 @@ from src.training.evaluation import accuracy
 
 
 
-def conv_relu_batch(input_data, filter_dims, stride, type="valid", name="crb"):
+def conv_relu_batch(input_data, filter_dims, stride, conv_type="valid", name="crb"):
     def conv2d(name="conv2d"):
         with tf.variable_scope(name):
             W = tf.get_variable("W", filter_dims,
                     initializer=tf.contrib.layers.variance_scaling_initializer())
             b = tf.get_variable("b", [1, 1, 1, filter_dims[-1]])
-            if self.conv_type == 'valid':
+            if conv_type == 'valid':
                 return tf.nn.conv2d(input_data, W, [1, stride, stride, 1], "VALID") + b
             else:
                 return tf.nn.conv2d(input_data, W, [1, stride, stride, 1], "SAME") + b
