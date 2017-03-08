@@ -54,7 +54,8 @@ def run_affine(inputs, H, N=None, name="affine_layer"):
 
 
 def run_lstm(inputs, targets, config, keep_prob=1):
-    cell = tf.contrib.rnn.LSTMCell(config.lstm_h, state_is_tuple=True)
+#    cell = tf.contrib.rnn.LSTMCell(config.lstm_h, state_is_tuple=True)
+    cell = tf.contrib.rnn.GRUCell(config.lstm_h)
     cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=keep_prob)
     stacked_cell = tf.contrib.rnn.MultiRNNCell([cell] * config.layers, state_is_tuple=True)
     state = cell.zero_state(config.B, tf.float32)

@@ -34,8 +34,12 @@ class Dataset():
             images[i] = (images[i] - means) / (stds + 1e-6)
         images = np.transpose(images, (0, 3, 1, 2))   
 
-        if config.deletion_band > -1: 
-            print images[0].shape
+        if config.deletion_band < 15: 
+            # TODO: there HAS to be a better way to do this
+            print 'HERE'
+            images = np.transpose(images, [3, 0, 1, 2])     
+            images = np.array([img for i, img in enumerate(images) if i != self.config.deletion_band])
+            images = np.transpose(images, [1, 2, 3, 0])
             self.data = [(x, y) for x, y in zip(images, labels)]
         else:
             self.data = [(x, y) for x, y in zip(images, labels)]

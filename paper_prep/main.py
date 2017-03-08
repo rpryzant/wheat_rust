@@ -43,7 +43,7 @@ class Config():
         self.H = settings.get('H', 35)
         self.C = settings.get('C', 10)
 
-        self.deletion_band = settings.get('deletion_band', -1)
+        self.deletion_band = settings.get('deletion_band', 19)
 
         self.layers = settings.get('L', 2)
         self.lstm_h = settings.get('lstm_h', 128)
@@ -125,7 +125,6 @@ def evaluate(combo, LOGGER, COMPLETED):
     LOGGER.log('\t building dataset...')
     dataset = Dataset(c.data_path, c)
     data_iterator = DataIterator(dataset)
-    quit()
     LOGGER.log('\t cross-validating...')
     preds = []
     probs = []
@@ -133,7 +132,7 @@ def evaluate(combo, LOGGER, COMPLETED):
     model = c.model_class(c)
     for i, (val, train) in enumerate(data_iterator.xval_split(12)):
         print '\t\t split ', i
-        os.environ['CUDA_VISIBLE_DEVICES'] = '2' # Or whichever device you would like to use
+        os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Or whichever device you would like to use
         gpu_options = tf.GPUOptions(allow_growth=True)
         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True)) as sess:
             sess.run(tf.global_variables_initializer())
@@ -255,9 +254,13 @@ if __name__ == '__main__':
     COMPLETED = Logger(sys.argv[2])
 
     # del_index in [0, 9]
-    s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard|C-9|deletion_band-0'
-    #s = 'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-max_row|dataset-standard'
+    for del_band in range(10):
+        s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard|C-9|deletion_band-%s' % str(del_band)
+        evaluate(deserialize(s), LOGGER, COMPLETED)
+
+    s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard|C-10|deletion_band-19'
     evaluate(deserialize(s), LOGGER, COMPLETED)
+    #s = 'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-max_row|dataset-standard'
     quit()
     #evaluate({'model_type': 'conv', 'W': 40, 'dense':64}, LOGGER, COMPLETED)
 
