@@ -21,15 +21,24 @@ from src.training.evaluation import accuracy
 
 
 
+
+def conv1d(input_data, name='conv1d'):
+    with tf.variable_scope(name):
+        dims = input_data.get_shape()
+        filters = tf.get_variable('f', [40, 10, 50], initializer=tf.contrib.layers.variance_scaling_initializer())
+        print tf.nn.conv1d(input_data, filters, stride=1, padding='SAME')
+
+
 def conv_relu_batch(input_data, filter_dims, stride, conv_type="valid", name="crb"):
+
     def conv2d(name="conv2d"):
         with tf.variable_scope(name):
             W = tf.get_variable("W", filter_dims,
                     initializer=tf.contrib.layers.variance_scaling_initializer())
             b = tf.get_variable("b", [1, 1, 1, filter_dims[-1]])
-            if conv_type == 'valid':
+            if conv_type == 'valid':    # if valid, one dot product
                 return tf.nn.conv2d(input_data, W, [1, stride, stride, 1], "VALID") + b
-            else:
+            else:                       # if same, slide filters over it
                 return tf.nn.conv2d(input_data, W, [1, stride, stride, 1], "SAME") + b
 
     def batch_normalization(input_data, axes=[0], name="batch"):
@@ -74,8 +83,8 @@ class LSTM():
 #        self.sess = sess
         self.config = config
 #        with tf.variable_scope(name):
-        self.x = tf.placeholder(tf.float32, [None, config.W, config.H, config.C], name='x')
-        self.y = tf.placeholder(tf.float32, [None])
+        self.x = tf.placeholder(tf.float32, [config.B, config.W, config.H, config.C], name='x')
+        self.y = tf.placeholder(tf.float32, [config.B])
         self.lr = tf.placeholder(tf.float32, [])
         self.keep_prob = tf.placeholder(tf.float32, [])
 
@@ -85,14 +94,18 @@ class LSTM():
         if self.config.model_type == 'conv_lstm':
             # [batch, in_height, in_width, in_channels]
             inputs = tf.transpose(self.x, [0, 2, 1, 3])
+            if config.conv_type == '1d':
+                inputs = tf.reshape(inputs, [config.B, -1, config.C])
+                lstm_inputs = conv1d(inputs)
 
-            if config.conv_type == '2d':
-                filter_dims = [3, 3, config.C, config.num_lstm_filters]
             else:
-                filter_dims = [1, self.config.W, config.C, config.num_lstm_filters]                
+                if config.conv_type == '2d':
+                    filter_dims = [3, 3, config.C, config.num_lstm_filters]
+                else:
+                    filter_dims = [1, self.config.W, config.C, config.num_lstm_filters]                
 
-            lstm_inputs = conv_relu_batch(inputs, filter_dims, 1, conv_type=config.conv_type)
-            lstm_inputs = tf.transpose(lstm_inputs, [1, 0, 2])  # time to 1st dim
+                lstm_inputs = conv_relu_batch(inputs, filter_dims, 1, conv_type=config.conv_type)
+                lstm_inputs = tf.transpose(lstm_inputs, [1, 0, 2])  # time to 1st dim
         else:
             inputs = tf.transpose(self.x, [2, 0, 1, 3])   # move time to first dimension
             dim = inputs.get_shape().as_list()

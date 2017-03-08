@@ -55,7 +55,7 @@ class Config():
         self.model_class = MODEL_CLASS_MAPPINGS[self.model_type]
 
         self.num_lstm_filters = settings.get('lstm_conv_filters', 128)
-        self.conv_type = settings.get('conv_type', 'valid')
+        self.conv_type = settings.get('conv_type', 'valid')     # [valid, 2d, max_row, 1d]
 
         self.l2 = settings.get('l2', 0.0)
         self.l1 = settings.get('l1', 0.0)
@@ -254,13 +254,19 @@ if __name__ == '__main__':
     COMPLETED = Logger(sys.argv[2])
 
     # del_index in [0, 9]
-    for del_band in range(10):
-        s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard|C-9|deletion_band-%s' % str(del_band)
-        evaluate(deserialize(s), LOGGER, COMPLETED)
+    # for del_band in range(10):
+    #     s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard|C-9|deletion_band-%s' % str(del_band)
+    #     evaluate(deserialize(s), LOGGER, COMPLETED)
 
-    s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard|C-10|deletion_band-19'
-    evaluate(deserialize(s), LOGGER, COMPLETED)
-    #s = 'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-max_row|dataset-standard'
+#    s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard|C-10|deletion_band-19'
+#    evaluate(deserialize(s), LOGGER, COMPLETED)
+    s = [
+        'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-1d|dataset-standard',
+        'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-valid|dataset-standard',
+        'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-max_row|dataset-standard'
+        ]
+    for si in s:
+        evaluate(deserialize(si), LOGGER, COMPLETED)
     quit()
     #evaluate({'model_type': 'conv', 'W': 40, 'dense':64}, LOGGER, COMPLETED)
 
