@@ -5,7 +5,9 @@ dataset container for output of clean_join_histogram_label
 import numpy as np
 
 class Dataset():
-    def __init__(self, filename):
+    def __init__(self, filename, config):
+        self.config = config
+
         content = np.load(filename)
         self.ids = content['ids']
         images = content['examples']
@@ -32,7 +34,11 @@ class Dataset():
             images[i] = (images[i] - means) / (stds + 1e-6)
         images = np.transpose(images, (0, 3, 1, 2))   
 
-        self.data = [(x, y) for x, y in zip(images, labels)]
+        if config.deletion_band > -1: 
+            print images[0].shape
+            self.data = [(x, y) for x, y in zip(images, labels)]
+        else:
+            self.data = [(x, y) for x, y in zip(images, labels)]
         self.indices = np.arange(len(self.data))
 
 

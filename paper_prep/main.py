@@ -20,20 +20,19 @@ import sys
 import json
 import os
 
-MODEL_CLASS_MAPPINGS = {
-    'lstm': LSTM,
-    'conv_lstm': LSTM,
-    'conv': CNN,
-    'svm': SVM,
-    'forest': RandomForest,
-    'regression': LogisticRegression
-}
-LOGGER = Logger(sys.argv[1])
-COMPLETED = Logger(sys.argv[2])
 
 
 class Config():
     def __init__(self, settings={}):
+        MODEL_CLASS_MAPPINGS = {
+            'lstm': LSTM,
+            'conv_lstm': LSTM,
+            'conv': CNN,
+            'svm': SVM,
+            'forest': RandomForest,
+            'regression': LogisticRegression
+        }
+
         if type(settings) == type('string'):
             self.settings = deserialize(serialized)
         else:
@@ -43,6 +42,8 @@ class Config():
         self.W = settings.get('W', 32)
         self.H = settings.get('H', 35)
         self.C = settings.get('C', 10)
+
+        self.deletion_band = settings.get('deletion_band', -1)
 
         self.layers = settings.get('L', 2)
         self.lstm_h = settings.get('lstm_h', 128)
@@ -122,9 +123,9 @@ def evaluate(combo, LOGGER, COMPLETED):
 
     start = time.time()
     LOGGER.log('\t building dataset...')
-    dataset = Dataset(c.data_path)
+    dataset = Dataset(c.data_path, c)
     data_iterator = DataIterator(dataset)
-
+    quit()
     LOGGER.log('\t cross-validating...')
     preds = []
     probs = []
@@ -132,7 +133,7 @@ def evaluate(combo, LOGGER, COMPLETED):
     model = c.model_class(c)
     for i, (val, train) in enumerate(data_iterator.xval_split(12)):
         print '\t\t split ', i
-        os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Or whichever device you would like to use
+        os.environ['CUDA_VISIBLE_DEVICES'] = '2' # Or whichever device you would like to use
         gpu_options = tf.GPUOptions(allow_growth=True)
         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True)) as sess:
             sess.run(tf.global_variables_initializer())
@@ -165,24 +166,15 @@ def evaluate(combo, LOGGER, COMPLETED):
 
     COMPLETED.log(json.dumps(output), show_time=False)
 
-#s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard'
-#s = 'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-max_row|dataset-standard'
-#evaluate(deserialize(s), LOGGER, COMPLETED)
-
-#evaluate({'model_type': 'conv', 'W': 40, 'dense':64}, LOGGER, COMPLETED)
-
-#quit()
-
-#evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
-#evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
 
 
-# quit()
-#    sess.close()
-# evaluate({})
-# evaluate({'model_type': 'regression'})
-# evaluate({'model_type': 'svm'})
-# evaluate({'model_type': 'forest'})
+
+
+
+
+
+
+
 
 
 
@@ -257,14 +249,41 @@ def generate_configurations():
     random.shuffle(alt_models)
     return alt_models, traditional_models
 
-alt, trad = generate_configurations()
-print len(alt)
-#quit()
-#print len(alt)
+if __name__ == '__main__':
 
-for combo in alt:
-    print combo
-    evaluate(combo, LOGGER, COMPLETED)
+    LOGGER = Logger(sys.argv[1])
+    COMPLETED = Logger(sys.argv[2])
 
-#Parallel(n_jobs=2)(delayed(evaluate)(combo, LOGGER, COMPLETED) for combo in alt)
+    # del_index in [0, 9]
+    s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard|C-9|deletion_band-0'
+    #s = 'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-max_row|dataset-standard'
+    evaluate(deserialize(s), LOGGER, COMPLETED)
+    quit()
+    #evaluate({'model_type': 'conv', 'W': 40, 'dense':64}, LOGGER, COMPLETED)
+
+    #quit()
+
+    #evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
+    #evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
+
+
+    # quit()
+    #    sess.close()
+    # evaluate({})
+    # evaluate({'model_type': 'regression'})
+    # evaluate({'model_type': 'svm'})
+    # evaluate({'model_type': 'forest'})
+
+
+
+    alt, trad = generate_configurations()
+    print len(alt)
+    #quit()
+    #print len(alt)
+
+    for combo in alt:
+        print combo
+        evaluate(combo, LOGGER, COMPLETED)
+
+    #Parallel(n_jobs=2)(delayed(evaluate)(combo, LOGGER, COMPLETED) for combo in alt)
 

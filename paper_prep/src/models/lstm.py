@@ -54,9 +54,9 @@ def run_affine(inputs, H, N=None, name="affine_layer"):
 
 
 def run_lstm(inputs, targets, config, keep_prob=1):
-    cell = tf.nn.rnn_cell.LSTMCell(config.lstm_h, state_is_tuple=True)
-    cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=keep_prob)
-    stacked_cell = tf.nn.rnn_cell.MultiRNNCell([cell] * config.layers, state_is_tuple=True)
+    cell = tf.contrib.rnn.LSTMCell(config.lstm_h, state_is_tuple=True)
+    cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=keep_prob)
+    stacked_cell = tf.contrib.rnn.MultiRNNCell([cell] * config.layers, state_is_tuple=True)
     state = cell.zero_state(config.B, tf.float32)
     outputs, final_state = tf.nn.dynamic_rnn(cell,
                                              inputs,
@@ -69,7 +69,7 @@ def run_lstm(inputs, targets, config, keep_prob=1):
 #shape=(35, 32, 128)
 
 class LSTM():
-    def __init__(self, config):
+    def __init__(self, config, regression=False):
 #        self.sess = sess
         self.config = config
 #        with tf.variable_scope(name):
@@ -101,9 +101,13 @@ class LSTM():
         lstm_out = run_lstm(lstm_inputs, self.y, config, keep_prob=self.keep_prob)
         fc1 = run_affine(lstm_out, config.dense, name='fc1')
         self.logits = tf.squeeze(run_affine(fc1, 1, name='logits'))
-        self.y_final = tf.sigmoid(self.logits)
 
-        self.loss_err = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.logits, labels=self.y))
+        if regression:
+            self.y_final = self.logits
+            self.loss_err = tf.nn.l2_loss(self.logits - self.y)
+        else:
+            self.y_final = tf.sigmoid(self.logits)
+            self.loss_err = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=self.logits, labels=self.y))
 
         self.loss_reg = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
 
