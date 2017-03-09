@@ -25,8 +25,10 @@ from src.training.evaluation import accuracy
 def conv1d(input_data, name='conv1d'):
     with tf.variable_scope(name):
         dims = input_data.get_shape()
-        filters = tf.get_variable('f', [40, 10, 50], initializer=tf.contrib.layers.variance_scaling_initializer())
-        print tf.nn.conv1d(input_data, filters, stride=1, padding='SAME')
+        # TODO OTHER THAN 10 FILTERS??
+        filters = tf.get_variable('f', [32 * 2, 10, 10], initializer=tf.contrib.layers.variance_scaling_initializer())
+        conv_output = tf.nn.conv1d(input_data, filters, stride=1, padding='SAME')
+        return conv_output
 
 
 def conv_relu_batch(input_data, filter_dims, stride, conv_type="valid", name="crb"):
@@ -97,6 +99,10 @@ class LSTM():
             if config.conv_type == '1d':
                 inputs = tf.reshape(inputs, [config.B, -1, config.C])
                 lstm_inputs = conv1d(inputs)
+                lstm_inputs = tf.reshape(lstm_inputs, [config.B, config.W, config.H, config.C])
+                lstm_inputs = tf.transpose(self.x, [2, 0, 1, 3])   # move time to first dimension
+                dim = lstm_inputs.get_shape().as_list()
+                lstm_inputs = tf.reshape(lstm_inputs, [dim[0], -1, dim[2]*dim[3]])  # concat bands for each image
 
             else:
                 if config.conv_type == '2d':

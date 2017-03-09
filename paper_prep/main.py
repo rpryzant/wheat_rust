@@ -261,13 +261,12 @@ if __name__ == '__main__':
 #    s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard|C-10|deletion_band-19'
 #    evaluate(deserialize(s), LOGGER, COMPLETED)
     s = [
-        'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-1d|dataset-standard',
-        'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-valid|dataset-standard',
-        'lstm_h-256|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.65|L-1|conv_type-max_row|dataset-standard'
+        'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard'
         ]
     for si in s:
+        print si
         evaluate(deserialize(si), LOGGER, COMPLETED)
-    quit()
+        quit()
     #evaluate({'model_type': 'conv', 'W': 40, 'dense':64}, LOGGER, COMPLETED)
 
     #quit()

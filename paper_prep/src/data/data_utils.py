@@ -15,10 +15,20 @@ class Dataset():
 
         # TODO - you shouldn't have to do this!!!
         n_timeseries = 35
-        filtered_indices = np.array([i for i, x in enumerate(images) if len(images[i]) == n_timeseries])  # because ragged arrays :/
+        padded_images = []
+        for i, x in enumerate(images):
+            if len(x) < n_timeseries:
+                x = np.append(x, np.zeros([n_timeseries - len(x), config.C, config.W]), axis=0)
+            padded_images.append(x)
 
-        images = np.array([i for i in images[filtered_indices]])
+#        filtered_indices = np.array([i for i, x in enumerate(images) if len(images[i]) == n_timeseries])  # because ragged arrays :/
+        filtered_indices = np.arange(len(padded_images))
+        images = np.array(padded_images)
+#        images = np.array([i for i in images[filtered_indices]])
         labels = np.array(labels[filtered_indices])
+
+        print len(images)
+        print len(labels)
 
         # load images, then
         #   -- only take stacks with complete timeseries info
@@ -36,7 +46,6 @@ class Dataset():
 
         if config.deletion_band < 15: 
             # TODO: there HAS to be a better way to do this
-            print 'HERE'
             images = np.transpose(images, [3, 0, 1, 2])     
             images = np.array([img for i, img in enumerate(images) if i != self.config.deletion_band])
             images = np.transpose(images, [1, 2, 3, 0])
