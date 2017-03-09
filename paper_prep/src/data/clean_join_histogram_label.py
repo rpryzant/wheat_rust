@@ -177,6 +177,15 @@ def process(gdrive, regions_kml, survey, out, label_type):
             start = time.time()
             merged_timeseries = preprocess(sr, temp, gpp)
             print '\t done! Took {:.2} seconds'.format(time.time() - start)
+            
+            merged_timeseries = np.transpose(merged_timeseries, [0, 3, 1, 2])
+            print merged_timeseries.shape
+#            quit()
+            labels.append(sf.label(region, season, type=label_type))
+            examples.append(merged_timeseries)
+            ids.append('%s-%s' % (region, season))
+
+            continue
 
             print '\t histogramming...'
             start = time.time()
@@ -200,7 +209,7 @@ def process(gdrive, regions_kml, survey, out, label_type):
     print 'writing data to %s...' % out
     start = time.time()
     if not os.path.exists(out): os.mkdir(out)
-    np.savez(out + '/%s-histogram_data.npz' % label_type, labels=labels, examples=examples, ids=ids)    
+    np.savez(out + '/raw_images.npz', labels=labels, examples=examples, ids=ids)    
     print 'done! took {:.2f} seconds. wrote {} examples. skipped {}.'.format(time.time() - start, len(examples), len(skipped))
     print 'skipped examples: '
     for x in skipped:
