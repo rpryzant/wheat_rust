@@ -64,14 +64,14 @@ def run_affine(inputs, H, N=None, name="affine_layer"):
         return tf.matmul(inputs, W) + b
 
 
-def run_lstm(inputs, targets, config, keep_prob=1):
-#    cell = tf.contrib.rnn.LSTMCell(config.lstm_h, state_is_tuple=True)
-    cell = tf.contrib.rnn.GRUCell(config.lstm_h)
+def run_lstm(inputs, targets, lengths, config, keep_prob=1):
+    cell = tf.contrib.rnn.LSTMCell(config.lstm_h, state_is_tuple=True)
     cell = tf.contrib.rnn.DropoutWrapper(cell, output_keep_prob=keep_prob)
     stacked_cell = tf.contrib.rnn.MultiRNNCell([cell] * config.layers, state_is_tuple=True)
     state = cell.zero_state(config.B, tf.float32)
     outputs, final_state = tf.nn.dynamic_rnn(cell,
                                              inputs,
+                                             sequence_length=lengths,
                                              initial_state=state,
                                              time_major=True)
     final_outputs = outputs[-1]
@@ -87,6 +87,7 @@ class LSTM():
 #        with tf.variable_scope(name):
         self.x = tf.placeholder(tf.float32, [config.B, config.W, config.H, config.C], name='x')
         self.y = tf.placeholder(tf.float32, [config.B])
+        self.l = tf.placeholder(tf.int32, [config.B])
         self.lr = tf.placeholder(tf.float32, [])
         self.keep_prob = tf.placeholder(tf.float32, [])
 
@@ -118,7 +119,7 @@ class LSTM():
             inputs = tf.reshape(inputs, [dim[0], -1, dim[2]*dim[3]])  # concat bands for each image
             lstm_inputs = inputs
 
-        lstm_out = run_lstm(lstm_inputs, self.y, config, keep_prob=self.keep_prob)
+        lstm_out = run_lstm(lstm_inputs, self.y, self.l, config, keep_prob=self.keep_prob)
         fc1 = run_affine(lstm_out, config.dense, name='fc1')
         self.logits = tf.squeeze(run_affine(fc1, 1, name='logits'))
 
@@ -143,10 +144,11 @@ class LSTM():
             train_loss = 0
             while i + self.batch_size < len(data):
                 batch = data[i: i + self.batch_size]
-                x_batch, y_batch = zip(*batch)
+                x_batch, y_batch, l_batch = zip(*batch)
                 _, loss = sess.run([self.train_op, self.loss], feed_dict={
                     self.x: x_batch,
                     self.y: y_batch,
+                    self.l: l_batch,
                     self.lr: self.config.lr,
                     self.keep_prob: self.config.keep_prob
                 })
@@ -163,10 +165,11 @@ class LSTM():
             total_loss = 0.0
             while i + self.batch_size < len(data):
                 batch = data[i: i + self.batch_size]
-                x_batch, y_batch = zip(*batch)
+                x_batch, y_batch, l_batch = zip(*batch)
                 loss, pred = sess.run([self.loss, self.y_final], feed_dict={
                     self.x: x_batch,
                     self.y: y_batch,
+                    self.l: l_batch,
                     self.keep_prob: 1.0
                     })
                 total_loss += loss
@@ -182,10 +185,11 @@ class LSTM():
             # room in your heart for forgiveness\
             # !!!!!!! TODO -- REFACTOR !!!!!!!!!
             final_batch = data[-self.batch_size:]
-            x_batch, y_batch = zip(*final_batch)
+            x_batch, y_batch, l_batch = zip(*final_batch)
             loss, pred = sess.run([self.loss, self.y_final], feed_dict={
                 self.x: x_batch,
                 self.y: y_batch,
+                self.l: l_batch,
                 self.keep_prob: 1.0
                 })
             remainder = len(data) - i
