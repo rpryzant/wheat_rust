@@ -81,7 +81,7 @@ for row in iterate_rows(labels_df):
     row_ts = ts_from_str(row.ObsDate)
     if row_ts.year == 2009:
         continue
-    if row_ts.month < 6 and row_ts.month > 1:
+    if row_ts.month < 8 and row_ts.month > 1:
 #	print(row_ts.month)
 	continue
     sequence = modis_data[row_ts.year][row['Location ID']]
