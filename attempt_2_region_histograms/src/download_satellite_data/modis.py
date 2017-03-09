@@ -71,6 +71,7 @@ for season, (start, end) in seasons.iteritems():
 	print 
 	regions = sf.surveyed_regions(season)
 	print 'var data_%s = %s;' % (str(season), str([[r, start, end, season] for r in regions]))
+	exec('var data_%s = %s;' % (str(season), str([[r, start, end, season] for r in regions])))
 
 #missing 2014
 if yearInput == "2016":
