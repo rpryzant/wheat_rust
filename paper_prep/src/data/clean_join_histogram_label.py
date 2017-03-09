@@ -41,14 +41,13 @@ from tqdm import tqdm
 import time
 sys.path.insert(0, os.path.abspath("../.."))
 from region_featurizer import *
-from joblib import Parallel
 
 
 SR_BANDS = 7
 TEMP_BANDS = 2
 GPP_BANDS = 1
 BANDS_PER_IMG = SR_BANDS + TEMP_BANDS + GPP_BANDS
-
+BINS = 45 + 1
 
 
 def gen_img_paths(gdrive_root):
@@ -133,10 +132,6 @@ def metadata_from_path(path):
 
 
 def histogram_stacked_image(timeseries):
-    sr_bins = np.linspace(1, 4999, 33)    # TODO - VERIFY?
-    temp_bins = np.linspace(13000, 17000, 33) # TODO - VERIFY?
-    gcc_bins = np.linspace(1, 999, 33)
-
     def get_bins(i):
         if i in range(0, 7):
             return sr_bins
@@ -148,6 +143,10 @@ def histogram_stacked_image(timeseries):
     def histogram(x):
         out = [ np.histogram(x[:,:,i], get_bins(i), density=False)[0] for i in range(x.shape[2]) ]
         return np.array(out)
+
+    sr_bins = np.linspace(1, 4999, BINS)    # TODO - VERIFY?
+    temp_bins = np.linspace(13000, 17000, BINS) # TODO - VERIFY?
+    gcc_bins = np.linspace(1, 999, BINS)
 
     return np.array( [histogram(x) for x in timeseries] )
 

@@ -35,9 +35,6 @@ for season, (start, end) in seasons.iteritems():
 
 
 
-
-quit()
-
 print '...'
 
 print 'initializing earth engine connection...'

@@ -1,0 +1,16 @@
+
+
+## Description of each directory
+
+analysis                --  scripts for analyzing processed histograme data 
+
+download_satellite_data --  scripts for pulling MODIS data from google earth engine
+
+prepare_data            --  code for histogramming satellite imagery, interacting with
+                             ethiopian region maps, and assigning survey observations to 
+                             regions
+
+clean_data              --  scripts for correcting messy/noisy region maps 
+
+training                --  LSTM model implementation and training scripts
+

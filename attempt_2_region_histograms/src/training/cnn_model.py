@@ -12,9 +12,11 @@ from datetime import datetime
 # datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 class Config():
-    B, W, H, C = 32, 32, 35, 10   # 32 per batch, 32 buckets, 35 images, 10 bands per images
+#    B, W, H, C = 32, 35, 32, 10
+#    B, W, H, C = 32, 35, 10, 32
+    B, W, H, C = 5, 32, 35, 10   # 32 per batch, 32 buckets, 35 images, 10 bands per images
     train_step = 25000
-    lr = 1e-6
+    lr = 0.0003
     weight_decay = 0.005
 
     drop_out = 0.25
@@ -91,7 +93,7 @@ class batch_norm(object):
         return normed
 
 class NeuralModel():
-    def __init__(self, config, name):
+    def __init__(self, config, name, task_type):
 
         self.x = tf.placeholder(tf.float32, [None, config.W, config.H, config.C], name="x")
         self.y = tf.placeholder(tf.float32, [None])
@@ -124,10 +126,14 @@ class NeuralModel():
         self.fc6 = dense(flattened, 2048, name="fc6")
 
         self.logits = tf.squeeze(dense(self.fc6, 1, name="dense"))
+
         self.y_final = tf.sigmoid(self.logits)
-        print self.y_final
-        print self.y
-        self.loss_err = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.logits, self.y))
+
+
+        if task_type == 'classification':
+            self.loss_err = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(self.logits, self.y))
+        else:
+            self.loss_err = tf.nn.l2_loss(self.logits - self.y)
 
 
         with tf.variable_scope('dense') as scope:
