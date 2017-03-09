@@ -15,11 +15,11 @@ class SVM():
             self.model = svm.SVC(probability=True) # still regularizes
 
     def fit_and_predict(self, data, val_data, sess):
-        x_train, y_train = zip(*data)
+        x_train, y_train, _ = zip(*data)
         x_train = [np.reshape(x, [-1]).tolist() for x in x_train] # concatenate errythang
         self.model.fit(x_train, y_train)
 
-        x_val, y_val = zip(*val_data)
+        x_val, y_val, _ = zip(*val_data)
         x_val = [np.reshape(x, [-1]).tolist() for x in x_val] # concatenate errythang
         y_hat = self.model.predict(x_val)
         y_probs = [x[1] for x in self.model.predict_proba(x_val)]
@@ -34,11 +34,11 @@ class RandomForest():
                                             max_depth=self.max_depth)
 
     def fit_and_predict(self, data, val_data, sess):
-        x_train, y_train = zip(*data)
+        x_train, y_train, _ = zip(*data)
         x_train = [np.reshape(x, [-1]).tolist() for x in x_train] # concatenate errythang
         self.model.fit(x_train, y_train)
 
-        x_val, y_val = zip(*val_data)
+        x_val, y_val, _ = zip(*val_data)
         x_val = [np.reshape(x, [-1]).tolist() for x in x_val] # concatenate errythang
         y_hat = self.model.predict(x_val)
         y_probs = [x[1] for x in self.model.predict_proba(x_val)]
@@ -61,11 +61,11 @@ class LogisticRegression():
                                                      C=self.c)
 
     def fit_and_predict(self, data, val_data, sess):
-        x_train, y_train = zip(*data)
+        x_train, y_train, _ = zip(*data)
         x_train = [np.reshape(x, [-1]).tolist() for x in x_train] # concatenate errythang
         self.model.fit(x_train, y_train)
 
-        x_val, y_val = zip(*val_data)
+        x_val, y_val, _ = zip(*val_data)
         x_val = [np.reshape(x, [-1]).tolist() for x in x_val] # concatenate errythang
         y_hat = self.model.predict(x_val)      # TODO not very clean, do it yourself on probs
         y_probs = [x[0] for x in self.model.predict_proba(x_val)]

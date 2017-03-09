@@ -6,7 +6,7 @@ python main.py [logging loc] [completed loc]
 
 from src.models.cnn import CNN
 from src.models.lstm import LSTM
-from src.data.data_utils import Dataset, DataIterator
+from src.data.data_utils import Dataset, BaselineDataset, DataIterator
 from src.training.evaluation import accuracy, Evaluator
 import tensorflow as tf
 #from joblib import Parallel, delayed   # because atlas 5 doesn't have this
@@ -42,6 +42,9 @@ class Config():
         self.W = settings.get('W', 32)
         self.H = settings.get('H', 35)
         self.C = settings.get('C', 10)
+        if 'deletion_band' in settings:
+            self.C -= 1
+
 
         self.deletion_band = settings.get('deletion_band', 19)
 
@@ -123,7 +126,8 @@ def evaluate(combo, LOGGER, COMPLETED):
 
     start = time.time()
     LOGGER.log('\t building dataset...')
-    dataset = Dataset(c.data_path, c)
+    dataset = BaselineDataset(c.data_path, c)
+#    dataset = Dataset(c.data_path, c)
     data_iterator = DataIterator(dataset)
     LOGGER.log('\t cross-validating...')
     preds = []
@@ -261,12 +265,13 @@ if __name__ == '__main__':
 #    s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard|C-10|deletion_band-19'
 #    evaluate(deserialize(s), LOGGER, COMPLETED)
     s = [
+        'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|deletion_band-9',
         'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard'
         ]
     for si in s:
         print si
         evaluate(deserialize(si), LOGGER, COMPLETED)
-        quit()
+
     #evaluate({'model_type': 'conv', 'W': 40, 'dense':64}, LOGGER, COMPLETED)
 
     #quit()
