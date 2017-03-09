@@ -61,17 +61,18 @@ region = ee.FeatureCollection('ft:133FLgnCJZsRswd2sb7Sp-od0Z90nB6P1qHuUDe57')
 cropland = ee.Image("users/rpryzant/IIASA_IFPRI")
 start = time.time()
 bandsInput = raw_input("Bands(sr, tmp, gpp): ")
-yearInput = raw_input("Year(ex. 2016): ")
+yearInput = int(raw_input("Year(ex. 2016): "))
 
 sys.path.insert(0, os.path.abspath("../.."))
 sf = SurveyFeaturizer(sys.argv[1], sys.argv[2])
-seasons = {y: ('%s-06-01' % y, '%s-03-01' % (y+1)) for y in range(2007, 2017) if y != 2009}
+#seasons = {y: ('%s-06-01' % y, '%s-03-01' % (y+1)) for y in range(2007, 2017) if y != 2009}
+seasons = {y: ('%s-06-01' % y, '%s-03-01' % (y+1)) for y in range(2007, 2017) if y == yearInput}
 for season, (start, end) in seasons.iteritems():
 	regions = sf.surveyed_regions(season)
-	print 'data_%s = %s;' % (str(season), str([[r, start, end, season] for r in regions]))
-	exec('data_%s = %s;' % (str(season), str([[r, start, end, season] for r in regions])))
+	print 'data_%s = %s' % (str(season), str([[r, start, end, season] for r in regions]))
+	exec('year = %s' % (str([[r, start, end, season] for r in regions])))
 
-if yearInput == "2016":
+'''if yearInput == "2016":
 	year = data_2016
 if yearInput == "2015":
 	year = data_2015
@@ -86,7 +87,7 @@ if yearInput == "2010":
 if yearInput == "2008":
 	year = data_2008
 if yearInput == "2007":
-	year = data_2007
+	year = data_2007'''
 
 #bands = [0,1,2,3,4,5,6] # sr
 #bands = [0, 4] # temp
