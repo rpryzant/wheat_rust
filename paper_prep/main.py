@@ -45,7 +45,7 @@ class Config():
         if 'deletion_band' in settings:
             self.C -= 1
 
-
+        self.padding = settings.get('padding', 'false')   # [false, true]   -- seems like padding doesn't help at all
         self.deletion_band = settings.get('deletion_band', 19)
 
         self.layers = settings.get('L', 2)
@@ -74,7 +74,8 @@ class Config():
         self.forest_depth = settings.get('forest_depth', None)
 
 
-        self.data_path = 'datasets/score_binary_threshold_1_buckets_%s.npz' % str(settings.get('W', 32))
+#        self.data_path = 'datasets/score_binary_threshold_1_buckets_%s.npz' % str(settings.get('W', 32))
+        self.data_path = 'datasets/raw_images.npz'
         self.dataset = settings.get('datset', 'standard')
 
 
@@ -266,12 +267,14 @@ if __name__ == '__main__':
 #    evaluate(deserialize(s), LOGGER, COMPLETED)
     s = [
         'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|deletion_band-9',
-        'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard'
+        'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard',
+        'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|deletion_band-9|padding-true',
+        'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|padding-true',        
         ]
     for si in s:
         print si
         evaluate(deserialize(si), LOGGER, COMPLETED)
-
+    quit()
     #evaluate({'model_type': 'conv', 'W': 40, 'dense':64}, LOGGER, COMPLETED)
 
     #quit()

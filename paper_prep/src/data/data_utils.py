@@ -7,7 +7,6 @@ import numpy as np
 class Dataset():
     def __init__(self, filename, config):
         self.config = config
-
         content = np.load(filename)
         self.ids = content['ids']
         images = content['examples']
@@ -15,21 +14,27 @@ class Dataset():
 
         # TODO - you shouldn't have to do this!!!
         n_timeseries = 35
-        padded_images = []
-        DEFAULT_BANDS = 10
-        lengths = []
-        for i, x in enumerate(images):
-            lengths.append(len(x))
-            if len(x) < n_timeseries:
-                x = np.append(x, np.zeros([n_timeseries - len(x), DEFAULT_BANDS, config.W]), axis=0)
-            padded_images.append(x)
 
+        if config.padding == 'true':
+            print 'PADDING...'
+            padded_images = []
+            DEFAULT_BANDS = 10
+            lengths = []
+            for i, x in enumerate(images):
+                lengths.append(len(x))
+                if len(x) < n_timeseries:
+                    x = np.append(x, np.zeros([n_timeseries - len(x), DEFAULT_BANDS, config.W]), axis=0)
+                padded_images.append(x)
+            filtered_indices = np.arange(len(padded_images))
+            images = np.array(padded_images)
+            lengths = np.array(lengths)
 
-        lengths = np.array(lengths)
-#        filtered_indices = np.array([i for i, x in enumerate(images) if len(images[i]) == n_timeseries])  # because ragged arrays :/
-        filtered_indices = np.arange(len(padded_images))
-        images = np.array(padded_images)
-#        images = np.array([i for i in images[filtered_indices]])
+        else:
+            print 'NOT PADDING...'
+            filtered_indices = np.array([i for i, x in enumerate(images) if len(images[i]) == n_timeseries])  # because ragged arrays :/
+            images = np.array([i for i in images[filtered_indices]])
+            lengths = np.array([len(x) for x in images])
+
         labels = np.array(labels[filtered_indices])
 
         print len(images)
@@ -73,22 +78,24 @@ class Dataset():
 class BaselineDataset():
     # http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0093107
     def __init__(self, filename, config):
+        # TODO - you shouldn't have to do this!!!
+        n_timeseries = 35
+
         self.config = config
-
+        print 'LOADING ', filename
         content = np.load(filename)
-
-
-        # TODO GET RAW IMGES IN [loc, stack, bands, height, width] FORMAT
-
-
+        print 'LOAD DONE'
+        self.ids = content['ids']
         out_vectors = []
-        for image_seq in images:
-            new_timeseries = []
-            for image in image_seq:
-                R_R = np.reduce_mean(image[0])
-                R_NIR = np.reduce_mean(image[1])
-                R_B = np.reduce_mean(image[2])
-                R_G = np.reduce_mean(image[3])
+        for timeseries in content['examples']:
+            new_timeseries = []            
+            if len(timeseries) < n_timeseries:
+                continue
+            for image in timeseries:
+                R_R = np.mean(image[0])
+                R_NIR = np.mean(image[1])
+                R_B = np.mean(image[2])
+                R_G = np.mean(image[3])
                 new_timeseries.append([
                     R_R,
                     R_NIR,
@@ -104,12 +111,14 @@ class BaselineDataset():
                     self.NLI(R_R, R_NIR),
                     self.RVDI(R_R, R_NIR)
                 ])
+                print new_timeseries
+                quit()
             out_vectors.append(new_timeseries)
-        out_vectors = np.array(out_vectors)
+        images = content['examples']
 
-        print out_vectors.shape
-        quit()
 
+        labels = content['labels']
+        print labels, content
 
 
     def SR(self, R_R, R_NIR):
@@ -145,8 +154,11 @@ class BaselineDataset():
         return (R_NIR**2 - R_R) / (R_NIR**2 + R_R)
 
     def RVDI(self, R_R, R_NIR):
+        """ re-normalized difference vegetation index """
         return (R_NIR - R_R) / (R_NIR + R_R)**0.5
 
+
+# TODO - CARI
 
     def get(self, i):
         return self.data[i]
