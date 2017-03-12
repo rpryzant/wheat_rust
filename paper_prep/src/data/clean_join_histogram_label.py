@@ -173,19 +173,11 @@ def process(gdrive, regions_kml, survey, out, label_type):
             region, season = metadata_from_path(sr)
             print 'START: %s-%s' % (region, season)
 
+
             print '\t merging data sources...'
             start = time.time()
             merged_timeseries = preprocess(sr, temp, gpp)
             print '\t done! Took {:.2} seconds'.format(time.time() - start)
-            
-            merged_timeseries = np.transpose(merged_timeseries, [0, 3, 1, 2])
-            print merged_timeseries.shape
-#            quit()
-            labels.append(sf.label(region, season, type=label_type))
-            examples.append(merged_timeseries)
-            ids.append('%s-%s' % (region, season))
-
-            continue
 
             print '\t histogramming...'
             start = time.time()
