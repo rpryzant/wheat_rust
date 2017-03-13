@@ -10,6 +10,21 @@ import os
 
 #print 'HERE'
 #quit()
+def deserialize(s):
+    def isint(s):
+        return s.isdigit()
+    def isfloat(s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False            
+    out = {}
+    for x in s.split('|'):
+        [k, v] = x.split('-')
+        out[k] = int(v) if isint(v) else float(v) if isfloat(v) else v
+    return out
+
 
 
 predict_year = 2013
@@ -63,17 +78,24 @@ image_validate=image_all[index_validate]
 yield_validate=yield_all[index_validate]
 
 
-s = {
-    'H': 32,
-    'model_type': 'lstm',
-    'C': 9,
-    'B': 2
-}
+
+s = 'H-32|C-9|lstm_h-128|B-2|dense-64|lstm_conv_filters-64|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard'
+
+
+# s = {
+#     'H': 32,
+#     'model_type': 'lstm',
+#     'C': 9,
+#     'B': 2
+# }
 
 c = Config(s)
 model = LSTM(c, regression=True)
-os.environ['CUDA_VISIBLE_DEVICES'] = '3' # Or whichever device you would like to use
+os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Or whichever device you would like to use
 gpu_options = tf.GPUOptions(allow_growth=True)
+
+saver = tf.train.Saver()
+
 with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placement=True)) as sess:
     sess.run(tf.global_variables_initializer())
 
@@ -82,15 +104,18 @@ with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options, allow_soft_placem
         i = 0
         epoch_loss = 0
         while i + batch_size < len(image_all):
+            lengths = [len(x) for x in image_all[i: i + batch_size]]
             _, loss = sess.run([model.train_op, model.loss], feed_dict={
                     model.x: image_all[i: i + batch_size],
                     model.y: yield_all[i: i + batch_size],
+                    model.l: lengths,
                     model.lr: c.lr,
                     model.keep_prob: c.keep_prob
                 })
             i += batch_size
             epoch_loss += loss
         print epoch_loss / i
+        saver.save(sess, 'checkpoints/transfer', global_step=model.global_step)
 
 
 

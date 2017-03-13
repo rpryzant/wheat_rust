@@ -12,7 +12,7 @@ import tensorflow as tf
 #from joblib import Parallel, delayed   # because atlas 5 doesn't have this
 import random
 import time
-from src.models.sklearn_models import *
+from src.models.baselines import *
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_curve, roc_auc_score
 import random
 from src.utils.logger import Logger
@@ -30,13 +30,14 @@ class Config():
             'conv': CNN,
             'svm': SVM,
             'forest': RandomForest,
-            'regression': LogisticRegression
+            'regression': LogisticRegression,
+            'random': Random
         }
 
         if type(settings) == type('string'):
-            self.settings = deserialize(serialized)
-        else:
-            self.settings = settings
+            settings = deserialize(settings)
+
+        self.settings = settings
 
         self.B = settings.get('B', 8)
         self.W = settings.get('W', 32)
@@ -74,8 +75,8 @@ class Config():
         self.forest_depth = settings.get('forest_depth', None)
 
 
-#        self.data_path = 'datasets/score_binary_threshold_1_buckets_%s.npz' % str(settings.get('W', 32))
-        self.data_path = 'datasets/raw_images.npz'
+        self.data_path = 'datasets/score_binary_threshold_1_buckets_%s.npz' % str(settings.get('W', 32))
+#        self.data_path = 'datasets/raw_images.npz'
         self.dataset = settings.get('datset', 'standard')
 
 
@@ -95,7 +96,6 @@ def deserialize(s):
             return True
         except ValueError:
             return False            
-
     out = {}
     for x in s.split('|'):
         [k, v] = x.split('-')
@@ -120,15 +120,18 @@ def performance(yhat, yprobs, y):
 
 
 
-def evaluate(combo, LOGGER, COMPLETED):
+def evaluate(combo, LOGGER, COMPLETED, baseline=False):
     c = Config(combo)
 
     LOGGER.log('EVALUATING ' + c.serialize())
 
     start = time.time()
     LOGGER.log('\t building dataset...')
-    dataset = BaselineDataset(c.data_path, c)
-#    dataset = Dataset(c.data_path, c)
+    if baseline:
+        c.data_path = 'datasets/raw_images.npz'      
+        dataset = BaselineDataset(c.data_path, c)
+    else:
+        dataset = Dataset(c.data_path, c)
     data_iterator = DataIterator(dataset)
     LOGGER.log('\t cross-validating...')
     preds = []
@@ -265,25 +268,25 @@ if __name__ == '__main__':
 
 #    s = 'lstm_h-64|B-2|dense-64|W-40|model_type-lstm|keep_prob-0.5|L-4|dataset-standard|C-10|deletion_band-19'
 #    evaluate(deserialize(s), LOGGER, COMPLETED)
-    s = [
-        'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|deletion_band-9',
-        'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard',
-        'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|deletion_band-9|padding-true',
-        'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|padding-true',        
-        ]
-    for si in s:
-        print si
-        evaluate(deserialize(si), LOGGER, COMPLETED)
-    quit()
+    # s = [
+    #     'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|deletion_band-9',
+    #     'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard',
+    #     'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|deletion_band-9|padding-true',
+    #     'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|padding-true',        
+    #     ]
+    # for si in s:
+    #     print si
+    #     evaluate(deserialize(si), LOGGER, COMPLETED)
+    # quit()
     #evaluate({'model_type': 'conv', 'W': 40, 'dense':64}, LOGGER, COMPLETED)
 
     #quit()
+    s = 'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard'
+    evaluate(deserialize(s), LOGGER, COMPLETED)
+    evaluate({'model_type': 'regression'}, LOGGER, COMPLETED, baseline=True)
+    evaluate({'model_type': 'random'}, LOGGER, COMPLETED, baseline=True)
 
-    #evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
-    #evaluate(Config({'model_type': 'regression'}), LOGGER, COMPLETED)
-
-
-    # quit()
+    quit()
     #    sess.close()
     # evaluate({})
     # evaluate({'model_type': 'regression'})

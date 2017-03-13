@@ -91,6 +91,8 @@ class LSTM():
         self.lr = tf.placeholder(tf.float32, [])
         self.keep_prob = tf.placeholder(tf.float32, [])
 
+        self.global_step = tf.Variable(0, dtype=tf.int32, trainable=False, name='global_step')
+
         self.batch_size = config.B
 
 
@@ -134,7 +136,8 @@ class LSTM():
 
         self.loss = self.loss_err #+ (config.l2 * self.loss_reg)
 
-        self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
+        self.train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss,
+            global_step=self.global_step)
 
 
 

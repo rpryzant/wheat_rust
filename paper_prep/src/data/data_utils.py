@@ -3,6 +3,7 @@ dataset container for output of clean_join_histogram_label
 
 """
 import numpy as np
+import math 
 
 class Dataset():
     def __init__(self, filename, config):
@@ -87,7 +88,8 @@ class BaselineDataset():
         print 'LOAD DONE'
         self.ids = content['ids']
         out_vectors = []
-        for timeseries in content['examples']:
+        indices = []
+        for i, timeseries in enumerate(content['examples']):
             new_timeseries = []            
             if len(timeseries) < n_timeseries:
                 continue
@@ -96,7 +98,7 @@ class BaselineDataset():
                 R_NIR = np.mean(image[1])
                 R_B = np.mean(image[2])
                 R_G = np.mean(image[3])
-                new_timeseries.append([
+                features = [
                     R_R,
                     R_NIR,
                     R_B,
@@ -109,16 +111,25 @@ class BaselineDataset():
                     self.OSAVI(R_R, R_NIR),
                     self.MSR(R_R, R_NIR),
                     self.NLI(R_R, R_NIR),
-                    self.RVDI(R_R, R_NIR)
-                ])
-                print new_timeseries
-                quit()
+                    self.RVDI(R_R, R_NIR),
+                    self.CARI(R_R, R_G, R_NIR),
+                    self.PSRI(R_R, R_B, R_NIR)
+                ]
+                # derivatives
+                if len(new_timeseries) == 0:
+                    features += [0] * len(features)
+                else:
+                    features += list(np.array(features) - np.array(new_timeseries[-1][:15]))  # 15 features for now TODO make dynmic on first half of vectors
+
+                new_timeseries.append(features)
             out_vectors.append(new_timeseries)
-        images = content['examples']
+            indices.append(i)
 
+        indices = np.array(indices)
+        labels = content['labels'][indices]
+        print len(labels), np.count_nonzero(np.array(labels))
+        self.data = [(x, y, None) for x, y in zip(out_vectors, labels)]   # need none to fit into (example, label, length) format
 
-        labels = content['labels']
-        print labels, content
 
 
     def SR(self, R_R, R_NIR):
@@ -158,7 +169,21 @@ class BaselineDataset():
         return (R_NIR - R_R) / (R_NIR + R_R)**0.5
 
 
+    def CARI(self, R_R, R_G, R_NIR):
+        """ clorophyll absorption ratio """
+        a = (R_NIR - R_R) * 1.0 / 150
+        b = R_G - (a * 550)
+
+        return ((a * 670 + R_R + b) * 1.0  / math.sqrt(a**2 + 1)) * (R_NIR * 1.0 / R_R)
+
+    def PSRI(self, R_R, R_B, R_NIR):
+        """ plant senescence reflectance index """
+        return (R_R - R_B) / R_NIR
+
+
+
 # TODO - CARI
+#      - PSRI
 
     def get(self, i):
         return self.data[i]
