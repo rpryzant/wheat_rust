@@ -3,7 +3,7 @@ python main.py [logging loc] [completed loc]
 
 """
 
-
+import math
 from src.models.cnn import CNN
 from src.models.lstm import LSTM
 from src.data.data_utils import Dataset, BaselineDataset, DataIterator
@@ -48,6 +48,15 @@ class Config():
 
         self.padding = settings.get('padding', 'false')   # [false, true]   -- seems like padding doesn't help at all
         self.deletion_band = settings.get('deletion_band', 19)
+        self.year_limit = settings.get('year_limit', -1)   # choke data at provided limit (inclusive). -1 = no choking
+        self.month_limit = settings.get('month_limit', -1)   # choke data at provided limit (inclusive). -1 = no choking
+        if self.month_limit > 0:
+            seq_len = self.H
+            season_len = 9
+            self.H = int(math.ceil((seq_len * 1.0 / season_len) * self.month_limit))  # TODO - 35 is hardcoded, rounding up, 9 is hardcoded
+
+
+
 
         self.layers = settings.get('L', 2)
         self.lstm_h = settings.get('lstm_h', 128)
@@ -132,7 +141,7 @@ def evaluate(combo, LOGGER, COMPLETED, baseline=False):
         dataset = BaselineDataset(c.data_path, c)
     else:
         dataset = Dataset(c.data_path, c)
-    data_iterator = DataIterator(dataset)
+    data_iterator = DataIterator(dataset, c.year_limit, c.month_limit)
     LOGGER.log('\t cross-validating...')
     preds = []
     probs = []
@@ -281,7 +290,7 @@ if __name__ == '__main__':
     #evaluate({'model_type': 'conv', 'W': 40, 'dense':64}, LOGGER, COMPLETED)
 
     #quit()
-    s = 'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard'
+    s = 'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|year_limit-2012|month_limit-5'
     evaluate(deserialize(s), LOGGER, COMPLETED)
     evaluate({'model_type': 'regression'}, LOGGER, COMPLETED, baseline=True)
     evaluate({'model_type': 'random'}, LOGGER, COMPLETED, baseline=True)
