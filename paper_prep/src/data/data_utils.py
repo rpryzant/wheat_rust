@@ -199,6 +199,9 @@ class BaselineDataset():
     def get_labels(self):
         return zip(*self.data)[1]
 
+    def get_ids(self):
+        return self.ids
+
 
 
 
