@@ -11,7 +11,11 @@ import matplotlib.pyplot as plt
 import json
 
 
-out_data = json.loads(next(open(sys.argv[1])))
+out = next(open(sys.argv[1]))
+try:
+    out_data = json.loads(out)
+except:
+    out_data = eval(out)
 
 curve = eval(out_data['result']['rocs'])
 
@@ -22,7 +26,7 @@ curve = eval(out_data['result']['rocs'])
 
 plt.figure(1)
 plt.plot([0, 1], [0, 1], 'k--')
-plt.plot(fpr, tpr, label='RT + LR')
+plt.plot(fpr, tpr, label='Best deep features')
 plt.xlabel('False positive rate')
 plt.ylabel('True positive rate')
 plt.title('ROC curve')

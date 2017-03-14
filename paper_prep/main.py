@@ -293,7 +293,9 @@ if __name__ == '__main__':
 #    s = 'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard|year_limit-2012|month_limit-5'
 #    evaluate(deserialize(s), LOGGER, COMPLETED)
     evaluate({'model_type': 'regression'}, LOGGER, COMPLETED, baseline=True)
-    evaluate({'model_type': 'random'}, LOGGER, COMPLETED, baseline=True)
+    evaluate({'model_type': 'regression'}, LOGGER, COMPLETED, baseline=False)
+
+#    evaluate({'model_type': 'random'}, LOGGER, COMPLETED, baseline=True)
 
     quit()
     #    sess.close()
