@@ -211,9 +211,14 @@ class DataIterator():
         self.ids = dataset.get_ids()
         self.data = dataset.get_data()
 
+        print 'DATA LENGTH ', len(self.data)
+
         if year_limit > 0:
             self.data = [datum for id, datum in zip(self.ids, self.data) \
                             if self.year_from_id(id) <= year_limit]
+
+
+        print 'DATA LENGTH ', len(self.data), 'YEAR LIMITED TO ', year_limit
 
         if month_limit > 0:
             seq_len = 35
@@ -221,8 +226,9 @@ class DataIterator():
             new_seq_len = int(math.ceil((seq_len * 1.0 / season_len) * month_limit))  # TODO - 35 is hardcoded, rounding up, 9 is hardcoded, repeated from config
             # months in season = 06/01 - 03/01 of the next year = 9
             [histograms, labels, lengths] = zip(*self.data)
-            choked_histograms = np.array(histograms)[:, :, :new_seq_len, :]
-
+            print np.array(histograms).shape
+            choked_histograms = np.array(histograms)[:, :new_seq_len, :]
+            print choked_histograms.shape
             lengths = [new_seq_len for _ in range(len(choked_histograms))]
 
             self.data = zip(tuple(choked_histograms), labels, lengths)
