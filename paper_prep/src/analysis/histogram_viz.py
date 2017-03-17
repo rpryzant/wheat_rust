@@ -1,14 +1,50 @@
 """
-vizualization stuff
+=== DESCRIPTION
+vizualizes histogram sequences and saves the vizualizations
 
-python viz.py ../../../data/training/score_binary-histogram_data.npz
+=== USAGE
+
+python histogram_viz.py [DATA FILE WITH HISTOGRAMS]
 
 """
 import matplotlib.pyplot as plt
+import prettyplotlib as ppl
 import sys
 import numpy as np
 
 
+
+def plot_hist_matplotlib(band, type, data):
+    """ plots the histograms for band [band], 
+          type [type] and data [data]
+
+        matplotlib uses rainbow coloring for pos+neg data,
+          so i mapped it to white-bleu spectrum. but that's not
+          great for neg and pos data so use the prettyplot
+          fn for that kind of stuff
+    """
+    dim = data.shape
+    plt.subplot(10, 2, band+1)
+    fig, ax = plt.subplots()
+    heatmap = ax.pcolor(data, cmap=plt.cm.Blues, alpha=0.8, linewidths=0.0)
+    fig = ax.get_figure()
+    plt.axis([0, dim[1], 0, dim[0]])
+    plt.title('%s: band %s' % (type, band))
+    plt.xlabel('buckets')
+    plt.ylabel('time')
+    fig.savefig("%s-histogram-%s.png" % (type, band))
+
+
+
+def plot_hist_prettyplotlib(band, type, data):
+    dim = data.shape
+
+    fig, ax = ppl.subplots(1)
+    ppl.pcolormesh(fig, ax, data, vmin=-0.0016, vmax=0.0016)
+    plt.title('%s: band %s' % (type, band))
+    plt.xlabel('buckets')
+    plt.ylabel('time')
+    fig.savefig("%s-histogram-%s.png" % (type, band))
 
 
 
@@ -46,21 +82,10 @@ mean_neg_hists = np.transpose(mean_neg_hists, [1, 0, 2])
 
 
 
-def plot_hist(band, type, data):
-    dim = data.shape
-    plt.subplot(10, 2, band+1)
-    fig, ax = plt.subplots()
-    heatmap = ax.pcolor(data, cmap=plt.cm.Blues, alpha=0.8, linewidths=0.0)
-    fig = ax.get_figure()
-    plt.axis([0, dim[1], 0, dim[0]])
-    plt.title('%s: band %s' % (type, band))
-    plt.xlabel('buckets')
-    plt.ylabel('time')
-    fig.savefig("%s-histogram-%s.png" % (type, band))
-
 
 for i in range(len(mean_neg_hists)):
     print 'plots for band', i
-    plot_hist(i, 'negative', mean_neg_hists[i] / np.sum(mean_neg_hists[i]))
-    plot_hist(i, 'positive', mean_pos_hists[i] / np.sum(mean_pos_hists[i]))
+    plot_hist_prettyplotlib(i, 'diff', (mean_neg_hists[i] / np.sum(mean_neg_hists[i])) -  (mean_pos_hists[i] / np.sum(mean_pos_hists[i]) ))
+#    plot_hist(i, 'negative', mean_neg_hists[i] / np.sum(mean_neg_hists[i]))
+#    plot_hist(i, 'positive', mean_pos_hists[i] / np.sum(mean_pos_hists[i]))
 
