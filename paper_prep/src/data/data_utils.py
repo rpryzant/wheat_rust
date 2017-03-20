@@ -59,9 +59,14 @@ class Dataset():
 
         if config.deletion_band < 15: 
             # TODO: there HAS to be a better way to do this
+            print 'DELETING BAND ', config.deletion_band
+            print np.array(images).shape
             images = np.transpose(images, [3, 0, 1, 2])     
             images = np.array([img for i, img in enumerate(images) if i != self.config.deletion_band])
             images = np.transpose(images, [1, 2, 3, 0])
+
+        print np.array(images).shape
+
         self.data = [(x, y, l) for x, y, l in zip(images, labels, lengths)]
 
         self.indices = np.arange(len(self.data))
@@ -102,6 +107,7 @@ class BaselineDataset():
                 R_NIR = np.mean(image[1])
                 R_B = np.mean(image[2])
                 R_G = np.mean(image[3])
+                GPP = np.mean(image[-1])
                 features = [
                     R_R,
                     R_NIR,
@@ -118,12 +124,14 @@ class BaselineDataset():
                     self.RVDI(R_R, R_NIR),
                     self.CARI(R_R, R_G, R_NIR),
                     self.PSRI(R_R, R_B, R_NIR)
+#                    GPP
                 ]
+                n_features = len(features)
                 # derivatives
                 if len(new_timeseries) == 0:
                     features += [0] * len(features)
                 else:
-                    features += list(np.array(features) - np.array(new_timeseries[-1][:15]))  # 15 features for now TODO make dynmic on first half of vectors
+                    features += list(np.array(features) - np.array(new_timeseries[-1][:n_features]))
 
                 new_timeseries.append(features)
             out_vectors.append(new_timeseries)
