@@ -8,7 +8,7 @@ from src.models.cnn import CNN
 from src.models.lstm import LSTM
 from src.data.data_utils import Dataset, BaselineDataset, DataIterator
 from src.training.evaluation import accuracy, Evaluator
-from src.analysis.roc_plotter import roc_plot
+#from src.analysis.roc_plotter import roc_plot
 import tensorflow as tf
 #from joblib import Parallel, delayed   # because atlas 5 doesn't have this
 import random
@@ -55,7 +55,6 @@ class Config():
             seq_len = self.H
             season_len = 9
             self.H = int(math.ceil((seq_len * 1.0 / season_len) * self.month_limit))  # TODO - 35 is hardcoded, rounding up, 9 is hardcoded
-
 
 
 
@@ -169,7 +168,7 @@ def evaluate(combo, LOGGER, COMPLETED, baseline=False):
 
     tf.reset_default_graph()
     acc, f1, precision, recall, rocs, auc = performance(preds, probs, val_labels)
-    roc_plot(*rocs, filename='TEST')
+#    roc_plot(*rocs, filename='TEST')
     rocs = map(lambda x: list(x), rocs)
     summary = {
         'acc': acc,
@@ -314,12 +313,12 @@ if __name__ == '__main__':
 
 
 
-#    s = 'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|dataset-standard' #|year_limit-2012|month_limit-5
-#    evaluate(deserialize(s), LOGGER, COMPLETED)
-    for i in range(2007, 2016):
-        if i == 2009: continue
-        evaluate({'model_type': 'regression', 'l2': 0.0000000000001, 'year_limit': i}, LOGGER, COMPLETED, baseline=True)
-        evaluate({'model_type': 'regression', 'l2': 0.0000001, 'year_limit': i}, LOGGER, COMPLETED, baseline=False)
+#    for _ in range(5):
+#        for i in range(10):
+#            s = 'lstm_h-128|B-2|dense-64|lstm_conv_filters-64|W-40|model_type-conv_lstm|keep_prob-0.5|L-1|conv_type-valid|deletion_band-%s' % str(i)
+#            evaluate(deserialize(s), LOGGER, COMPLETED)
+    evaluate({'model_type': 'regression', 'l2': 0.0000000000001}, LOGGER, COMPLETED, baseline=True)
+#   evaluate({'model_type': 'regression', 'l2': 0.0000001, 'deletion_band': i}, LOGGER, COMPLETED, baseline=False)
 
 
 #    evaluate({'model_type': 'random'}, LOGGER, COMPLETED, baseline=True)
@@ -343,9 +342,9 @@ if __name__ == '__main__':
     #quit()
     #print len(alt)
 
-    for combo in alt:
-        print combo
-        evaluate(combo, LOGGER, COMPLETED)
+#    for combo in alt:
+#        print combo
+#        evaluate(combo, LOGGER, COMPLETED)
 
     #Parallel(n_jobs=2)(delayed(evaluate)(combo, LOGGER, COMPLETED) for combo in alt)
 
