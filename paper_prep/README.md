@@ -11,7 +11,7 @@
 
 
 ## Where Everything Is
-
+* `/atlas/u/rpryzant/wheat_rust/data`: example datasets
 * `main.py`: source for configuring, launching, and recording experiments
 * `transfer_main.py` (incomplete): source for training model on yield data, then transfering parameters over to a rust model
 * `datasets/`: survey data and region map
