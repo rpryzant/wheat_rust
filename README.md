@@ -1,5 +1,8 @@
 
-# Description
+# GO TO paper_prep/ FOR USAGE AND INSTRUCTIONS
+
+
+## Project Description
 
 At a high level, this project tries to train machine learning models on satellite imagery in order to discover fungal outbreaks among Ethiopian wheat fields. 
 
@@ -21,19 +24,4 @@ For examples, we are using photos taken from two NASA spacecraft: Terra and Aqua
 
 
 
-
-# Cropland Mask Directions
-
-These are the steps you need to do to get the IIASA-IFPRI Cropland Map into google earth engine:
-
-1. Go to http://cropland.geo-wiki.org/downloads/ and download the http://cropland.geo-wiki.org/downloads/ (its the firt download link).
-2. Install GDAL. Go to http://tilemill-project.github.io/tilemill/docs/guides/gdal/ and follow the directions for your machine/OS.
-3. Unzip the downloaded cropland map, cd into that directory, and convert the `.img` to a `.tif`:
-```
-unzip cropland_hybrid_14052014v8.zip -d .
-cd cropland_hybrid_14052014v8
-gdal_translate -of GTiff Hybrid_14052014V8.img cropland_map.tif
-```
-4. Upload the `.tif` to google earth engine. Go to https://code.earthengine.google.com/, then click on the "assets" tab. Click "NEW", then "Image Upload". Select your recently converted `.tif`, then click ok. 
-5. An "Upload" job should be triggered in your "task" panel. Once that's complete the map should be in your "assets" tab.
 
