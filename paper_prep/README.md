@@ -26,20 +26,37 @@
 
 ## How to Run the Pipeline
 
+
 These are the steps you need to take to process some data and train models:
 
-1. **Get the IIASA-IFPRI Cropland Map**
-    * make a google earth engine account: https://earthengine.google.com/
-    * Go to http://cropland.geo-wiki.org/downloads/ and download the http://cropland.geo-wiki.org/downloads/ (its the first download link).
-    * Install GDAL. Go to http://tilemill-project.github.io/tilemill/docs/guides/gdal/ and follow the directions for your machine/OS.
-    * Unzip the downloaded cropland map, cd into that directory, and convert the `.img` to a `.tif`:
+### 1) Get the IIASA-IFPRI Cropland Map
+* make a google earth engine account: https://earthengine.google.com/
+* Go to http://cropland.geo-wiki.org/downloads/ and download the http://cropland.geo-wiki.org/downloads/ (its the first download link).
+* Install GDAL. Go to http://tilemill-project.github.io/tilemill/docs/guides/gdal/ and follow the directions for your machine/OS.
+* Unzip the downloaded cropland map, cd into that directory, and convert the `.img` to a `.tif`:
 ```
 unzip cropland_hybrid_14052014v8.zip -d .
 cd cropland_hybrid_14052014v8
 gdal_translate -of GTiff Hybrid_14052014V8.img cropland_map.tif
 ```
-    * Upload the `.tif` to google earth engine. Go to https://code.earthengine.google.com/, then click on the "assets" tab. Click "NEW", then "Image Upload". Select your recently converted `.tif`, then click ok.
-    * An "Upload" job should be triggered in your "task" panel. Once that's complete the map should be in your "assets" tab.
+* Upload the `.tif` to google earth engine. Go to https://code.earthengine.google.com/, then click on the "assets" tab. Click "NEW", then "Image Upload". Select your recently converted `.tif`, then click ok.
+* An "Upload" job should be triggered in your "task" panel. Once that's complete the map should be in your "assets" tab.
+
+### 2) Get some MODIS data, then histogram and label it
+```
+cd src/data/
+python modis.py ../../datasets/regions.kml ../../datasets/raw_survey.csv
+python clean_join_histogram_label.py ~/Google\ Drive/ ../../data/regions.kml ../../data/raw_survey.csv ~/DATA
+```
+### 3) Run models
+You have two options. Either run some quick jobs with `main.py`:
+```
+python main.py run_log run_outputs
+```
+Or do a full nested cross-validation run with `evaluation.py`:
+```
+python evaluation.py run_log run_outputs
+```
 
 
 ## Usage
