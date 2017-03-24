@@ -7,8 +7,13 @@ import json
 from region_featurizer import *
 
 """
+=== DESCRIPTION
+Downloads MODIS data into your google drive
+
+
 === USAGE
-python modis.py ../../data/regions.kml ../../data/raw_survey.csv
+replace the {YOUR USERNAME} at line 51 
+python modis.py ../../datasets/regions.kml ../../datasets/raw_survey.csv
 
 """
 def appendBand(current, previous):
@@ -43,7 +48,7 @@ def download_image (img_collection, start, end, region, bands, folderName, fileN
 
 ee.Initialize()
 regions = ee.FeatureCollection('ft:133FLgnCJZsRswd2sb7Sp-od0Z90nB6P1qHuUDe57')
-cropland = ee.Image("users/rpryzant/IIASA_IFPRI")
+cropland = ee.Image("users/{YOUR USERNAME}/IIASA_IFPRI")
 start = time.time()
 bandsInput = raw_input("Bands(sr, tmp, gpp): ")
 yearInput = int(raw_input("Year(ex. 2016): "))
