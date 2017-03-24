@@ -38,7 +38,7 @@ def plot_hist_matplotlib(band, type, data):
 
 def plot_hist_prettyplotlib(band, type, data):
     dim = data.shape
-
+    print 'data dim ', dim
     fig, ax = ppl.subplots(1)
     ppl.pcolormesh(fig, ax, data, vmin=-0.0016, vmax=0.0016)
     plt.title('%s: band %s' % (type, band))
